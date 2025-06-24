@@ -1,9 +1,204 @@
-<!DOCTYPE html>
+function renderManageCategory(category, listId) {
+            const listElement = document.getElementById(listId);
+            const memberList = category === 'adult' ? members.adults : members.children;
+
+            listElement.innerHTML = '';
+            
+            memberList.forEach((member, index) => {
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'member-item';
+                memberDiv.innerHTML = `
+                    <div class="member-info">
+                        <div class="member-name">${member.name}</div>
+                        <div class="member-group">${member.group}</div>
+                    </div>
+                    <div class="member-controls">
+                        <button class="edit-btn" onclick="editMember('${category}', ${index})">编辑</button>
+                        <button class="delete-btn" onclick="deleteMember('${category}', ${index})">删除</button>
+                    </div>
+                `;
+                listElement.appendChild(memberDiv);
+            });
+        }
+
+        function addMember(category) {
+            const nameInputId = category === 'adult' ? 'newAdultName' : 'newChildName';
+            const groupSelectId = category === 'adult' ? 'adultGroupSelect' : 'childGroupSelect';
+            
+            const name = document.getElementById(nameInputId).value.trim();
+            const group = document.getElementById(groupSelectId).value || '未分组';
+            
+            if (name) {
+                const memberList = category === 'adult' ? members.adults : members.children;
+                
+                // 检查是否已存在
+                if (memberList.find(m => m.name === name)) {
+                    alert('该成员已存在！');
+                    return;
+                }
+                
+                memberList.push({ name, group });
+                
+                document.getElementById(nameInputId).value = '';
+                document.getElementById(groupSelectId).value = '';
+                renderManageList();
+                renderAttendanceList();
+                saveData();
+            }
+        }
+
+        function editMember(category, index) {
+            const memberList = category === 'adult' ? members.adults : members.children;
+            const member = memberList[index];
+            const groupList = category === 'adult' ? groups.adults : groups.children;
+            
+            const newName = prompt('修改姓名:', member.name);
+            if (newName && newName.trim()) {
+                // 检查新名字是否已存在
+                if (memberList.find(m => m.name === newName.trim() && m !== member)) {
+                    alert('该姓名已存在！');
+                    return;
+                }
+                
+                const oldName = member.name;
+                member.name = newName.trim();
+                
+                // 更新出席记录中的姓名
+                Object.keys(attendance).forEach(meetingType => {
+                    const categoryKey = category === 'adult' ? 'adults' : 'children';
+                    const attendList = attendance[meetingType][categoryKey];
+                    const nameIndex = attendList.indexOf(oldName);
+                    if (nameIndex !== -1) {
+                        attendList[nameIndex] = member.name;
+                    }
+                });
+                
+                renderManageList();
+                renderAttendanceList();
+                saveData();
+            }
+            
+            // 修改小组
+            const groupOptions = ['未分组', ...groupList];
+            let groupChoice = '';
+            groupOptions.forEach((group, i) => {
+                groupChoice += `${i}: ${group}\n`;
+            });
+            
+            const groupIndex = prompt(`选择新小组 (当前: ${member.group}):\n${groupChoice}\n输入数字:`);
+            if (groupIndex !== null && groupIndex.trim() !== '') {
+                const index = parseInt(groupIndex);
+                if (index >= 0 && index < groupOptions.length) {
+                    member.group = groupOptions[index];
+                    renderManageList();
+                    renderAttendanceList();
+                    saveData();
+                }
+            }
+        }
+
+        function deleteMember(category, index) {
+            const memberList = category === 'adult' ? members.adults : members.children;
+            const member = memberList[index];
+            
+            if (confirm(`确定要删除成员 "${member.name}" 吗？`)) {
+                // 从出席记录中移除
+                Object.keys(attendance).forEach(meetingType => {
+                    const categoryKey = category === 'adult' ? 'adults' : 'children';
+                    const attendList = attendance[meetingType][categoryKey];
+                    const nameIndex = attendList.indexOf(member.name);
+                    if (nameIndex !== -1) {
+                        attendList.splice(nameIndex, 1);
+                    }
+                });
+                
+                memberList.splice(index, 1);
+                renderManageList();
+                renderAttendanceList();
+                saveData();
+            }
+        }
+
+        function toggleAttendance(category, name) {
+            const categoryKey = category === 'adult' ? 'adults' : 'children';
+            const attendedList = attendance[currentMeeting][categoryKey];
+            
+            if (attendedList.includes(name)) {
+                attendance[currentMeeting][categoryKey] = attendedList.filter(n => n !== name);
+            } else {
+                attendedList.push(name);
+            }
+            
+            renderAttendanceList();
+            updateStats();
+        }
+
+        function updateStats() {
+            const currentAttendance = attendance[currentMeeting];
+            const totalAttended = currentAttendance.adults.length + currentAttendance.children.length;
+            const totalMembers = members.adults.length + members.children.length;
+            const rate = totalMembers > 0 ? Math.round((totalAttended / totalMembers) * 100) : 0;
+
+            document.getElementById('todayTotal').textContent = totalAttended;
+            document.getElementById('todayAdults').textContent = currentAttendance.adults.length;
+            document.getElementById('todayChildren').textContent = currentAttendance.children.length;
+            document.getElementById('attendanceRate').textContent = rate + '%';
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('churchMembers', JSON.stringify(members));
+                localStorage.setItem('churchGroups', JSON.stringify(groups));
+                localStorage.setItem('churchAttendance', JSON.stringify(attendance));
+                localStorage.setItem('churchHistory', JSON.stringify(attendanceHistory));
+                console.log('数据已保存到本地存储');
+            } catch (error) {
+                console.error('保存数据失败:', error);
+            }
+        }
+
+        function loadData() {
+            try {
+                const savedMembers = localStorage.getItem('churchMembers');
+                const savedGroups = localStorage.getItem('churchGroups');
+                const savedAttendance = localStorage.getItem('churchAttendance');
+                const savedHistory = localStorage.getItem('churchHistory');
+                
+                if (savedMembers) {
+                    const loadedMembers = JSON.parse(savedMembers);
+                    // 确保数据格式正确（兼容旧版本）
+                    if (Array.isArray(loadedMembers.adults) && typeof loadedMembers.adults[0] === 'string') {
+                        // 旧格式转换
+                        members.adults = loadedMembers.adults.map(name => ({ name, group: '未分组' }));
+                        members.children = loadedMembers.children.map(name => ({ name, group: '未分组' }));
+                    } else {
+                        members = loadedMembers;
+                    }
+                }
+                
+                if (savedGroups) {
+                    groups = JSON.parse(savedGroups);
+                }
+                
+                if (savedAttendance) {
+                    attendance = JSON.parse(savedAttendance);
+                }
+                
+                if (savedHistory) {
+                    attendanceHistory = JSON.parse(savedHistory);
+                }
+                
+                console.log('数据已从本地存储加载');
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                // 使用默认数据
+            }
+        }<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>教会点名统计</title>
+    <title>圣经直道教会 - 聚会点名统计</title>
     
     <!-- PWA 配置 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,14 +207,8 @@
     <meta name="theme-color" content="#4CAF50">
     
     <!-- 应用图标 -->
-    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%234CAF50'/%3E%3Crect x='82' y='30' width='16' height='70' fill='white'/%3E%3Crect x='50' y='60' width='80' height='16' fill='white'/%3E%3Crect x='30' y='90' width='120' height='50' rx='6' fill='%238B4513'/%3E%3Crect x='36' y='96' width='108' height='38' rx='4' fill='%23D2691E'/%3E%3Cline x1='45' y1='106' x2='135' y2='106' stroke='%238B4513' stroke-width='3'/%3E%3Cline x1='45' y1='116' x2='115' y2='116' stroke='%238B4513' stroke-width='3'/%3E%3Cline x1='45' y1='126' x2='125' y2='126' stroke='%238B4513' stroke-width='3'/%3E%3C/svg%3E">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234CAF50'/%3E%3Crect x='14' y='5' width='4' height='14' fill='white'/%3E%3Crect x='8' y='12' width='16' height='4' fill='white'/%3E%3Crect x='6' y='18' width='20' height='10' rx='1' fill='%238B4513'/%3E%3Crect x='7' y='19' width='18' height='8' rx='1' fill='%23D2691E'/%3E%3Cline x1='9' y1='21' x2='23' y2='21' stroke='%238B4513' stroke-width='1'/%3E%3Cline x1='9' y1='23' x2='19' y2='23' stroke='%238B4513' stroke-width='1'/%3E%3Cline x1='9' y1='25' x2='21' y2='25' stroke='%238B4513' stroke-width='1'/%3E%3C/svg%3E">
-    
-    <!-- 启动画面 -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <!-- Manifest文件链接 -->
-    <link rel="manifest" href="data:application/json,%7B%22name%22%3A%22%E6%95%99%E4%BC%9A%E7%82%B9%E5%90%8D%E7%BB%9F%E8%AE%A1%22%2C%22short_name%22%3A%22%E6%95%99%E4%BC%9A%E7%82%B9%E5%90%8D%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%234CAF50%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%3D%27http%3A//www.w3.org/2000/svg%27%2520viewBox%3D%270%25200%2520512%2520512%27%253E%253Crect%2520width%3D%27512%27%2520height%3D%27512%27%2520rx%3D%27102%27%2520fill%3D%27%25234CAF50%27/%253E%253Cpath%2520d%3D%27M256%2520114c-47%25200-85%252038-85%252085%25200%252064%252085%2520199%252085%2520199s85-135%252085-199c0-47-38-85-85-85zm0%2520114c-16%25200-28-12-28-28s12-28%252028-28%252028%252012%252028%252028-12%252028-28%252028z%27%2520fill%3D%27white%27/%253E%253C/svg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/svg%2Bxml%22%7D%5D%7D">
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%234CAF50'/%3E%3Crect x='82' y='30' width='16' height='70' fill='white'/%3E%3Crect x='50' y='60' width='80' height='16' fill='white'/%3E%3Crect x='30' y='90' width='120' height='50' rx='6' fill='%238B4513'/%3E%3Crect x='36' y='96' width='108' height='38' rx='4' fill='%23D2691E'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234CAF50'/%3E%3Crect x='14' y='5' width='4' height='14' fill='white'/%3E%3Crect x='8' y='12' width='16' height='4' fill='white'/%3E%3Crect x='6' y='18' width='20' height='10' rx='1' fill='%238B4513'/%3E%3C/svg%3E">
     
     <style>
         * {
@@ -55,26 +244,79 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             gap: 15px;
         }
 
-        .logo-image {
-            width: 60px;
-            height: 60px;
+        .logo-container {
+            width: 70px;
+            height: 70px;
             background: white;
-            border-radius: 12px;
-            padding: 8px;
+            border-radius: 15px;
+            padding: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
         }
 
-        .logo-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        .logo-cross {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .cross-vertical {
+            width: 4px;
+            height: 20px;
+            background: #4CAF50;
+            margin: 0 auto;
+        }
+
+        .cross-horizontal {
+            width: 16px;
+            height: 4px;
+            background: #4CAF50;
+            margin: -8px auto 0;
+        }
+
+        .logo-bible {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 20px;
+            background: #8B4513;
+            border-radius: 2px;
+        }
+
+        .bible-pages {
+            width: 26px;
+            height: 16px;
+            background: #D2691E;
+            border-radius: 1px;
+            margin: 2px auto;
+            position: relative;
+        }
+
+        .bible-lines {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            right: 3px;
+        }
+
+        .bible-line {
+            height: 1px;
+            background: #8B4513;
+            margin-bottom: 2px;
+        }
+
+        .bible-line:nth-child(2) {
+            width: 70%;
         }
 
         .church-info {
@@ -82,22 +324,25 @@
         }
 
         .church-name {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: bold;
             margin-bottom: 2px;
             color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         .church-name-en {
             font-size: 0.8rem;
             opacity: 0.9;
             font-weight: normal;
+            letter-spacing: 1px;
         }
 
         .header h1 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             margin-bottom: 5px;
             margin-top: 10px;
+            font-weight: 600;
         }
 
         .header .date {
@@ -207,9 +452,176 @@
             cursor: pointer;
         }
 
-        .member-name {
+        .member-info {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .member-name {
             font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .member-group {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .group-filter {
+            margin-bottom: 15px;
+        }
+
+        .group-filter select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: white;
+        }
+
+        .import-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 2px dashed #4CAF50;
+        }
+
+        .import-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #45a049;
+        }
+
+        .import-info {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .group-management {
+            margin-bottom: 20px;
+        }
+
+        .group-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .group-tag {
+            background: #e8f5e8;
+            color: #2e7d2e;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .group-tag button {
+            background: none;
+            border: none;
+            color: #2e7d2e;
+            cursor: pointer;
+            font-size: 0.7rem;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .group-tag button:hover {
+            background: rgba(46, 125, 46, 0.2);
+        }
+
+        .group-input {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .group-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .group-input button {
+            padding: 8px 12px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .export-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff8e1;
+            border-radius: 8px;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .export-btn {
+            flex: 1;
+            padding: 10px;
+            background: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .export-btn:hover {
+            background: #F57C00;
         }
 
         .member-controls {
@@ -366,7 +778,7 @@
             color: white;
         }
 
-        .splash-logo {
+        .splash-logo-big {
             width: 120px;
             height: 120px;
             background: white;
@@ -375,18 +787,61 @@
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .splash-cross {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .splash-cross-v {
+            width: 8px;
+            height: 40px;
+            background: #4CAF50;
+            margin: 0 auto;
+        }
+
+        .splash-cross-h {
+            width: 32px;
+            height: 8px;
+            background: #4CAF50;
+            margin: -16px auto 0;
+        }
+
+        .splash-bible {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 40px;
+            background: #8B4513;
+            border-radius: 4px;
+        }
+
+        .splash-bible-pages {
+            width: 52px;
+            height: 32px;
+            background: #D2691E;
+            border-radius: 2px;
+            margin: 4px auto;
+            position: relative;
         }
 
         .splash-text {
             font-size: 1.5rem;
             font-weight: bold;
             margin-bottom: 10px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .splash-subtitle {
             font-size: 1rem;
-            opacity: 0.8;
+            opacity: 0.9;
         }
 
         /* 安装提示 */
@@ -422,18 +877,14 @@
 <body>
     <!-- 启动画面 -->
     <div class="splash-screen" id="splashScreen">
-        <div class="splash-logo">
-            <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <!-- 十字架 -->
-                <rect x="36" y="15" width="8" height="35" fill="#4CAF50"/>
-                <rect x="25" y="30" width="30" height="8" fill="#4CAF50"/>
-                <!-- 圣经 -->
-                <rect x="15" y="45" width="50" height="25" rx="3" fill="#8B4513"/>
-                <rect x="18" y="48" width="44" height="19" rx="2" fill="#D2691E"/>
-                <line x1="22" y1="53" x2="58" y2="53" stroke="#8B4513" stroke-width="2"/>
-                <line x1="22" y1="58" x2="50" y2="58" stroke="#8B4513" stroke-width="2"/>
-                <line x1="22" y1="63" x2="54" y2="63" stroke="#8B4513" stroke-width="2"/>
-            </svg>
+        <div class="splash-logo-big">
+            <div class="splash-cross">
+                <div class="splash-cross-v"></div>
+                <div class="splash-cross-h"></div>
+            </div>
+            <div class="splash-bible">
+                <div class="splash-bible-pages"></div>
+            </div>
         </div>
         <div class="splash-text">圣经直道教会</div>
         <div class="splash-subtitle">聚会点名统计系统</div>
@@ -449,18 +900,20 @@
     <div class="container" id="mainApp" style="display: none;">
         <div class="header">
             <div class="church-logo">
-                <div class="logo-image">
-                    <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
-                        <!-- 十字架 -->
-                        <rect x="20" y="8" width="4" height="20" fill="#4CAF50"/>
-                        <rect x="14" y="16" width="16" height="4" fill="#4CAF50"/>
-                        <!-- 圣经 -->
-                        <rect x="10" y="24" width="24" height="16" rx="2" fill="#8B4513"/>
-                        <rect x="12" y="26" width="20" height="12" rx="1" fill="#D2691E"/>
-                        <line x1="15" y1="29" x2="29" y2="29" stroke="#8B4513" stroke-width="1"/>
-                        <line x1="15" y1="32" x2="25" y2="32" stroke="#8B4513" stroke-width="1"/>
-                        <line x1="15" y1="35" x2="27" y2="35" stroke="#8B4513" stroke-width="1"/>
-                    </svg>
+                <div class="logo-container">
+                    <div class="logo-cross">
+                        <div class="cross-vertical"></div>
+                        <div class="cross-horizontal"></div>
+                    </div>
+                    <div class="logo-bible">
+                        <div class="bible-pages">
+                            <div class="bible-lines">
+                                <div class="bible-line"></div>
+                                <div class="bible-line"></div>
+                                <div class="bible-line"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="church-info">
                     <div class="church-name">圣经直道教会</div>
@@ -491,12 +944,22 @@
                     <div class="category-title">
                         成人 <span id="adultCount">0/0</span>
                     </div>
+                    <div class="group-filter">
+                        <select id="adultGroupFilter" onchange="filterByGroup('adult')">
+                            <option value="">全部小组</option>
+                        </select>
+                    </div>
                     <div id="adultList"></div>
                 </div>
 
                 <div class="category-section">
                     <div class="category-title">
                         儿童 <span id="childCount">0/0</span>
+                    </div>
+                    <div class="group-filter">
+                        <select id="childGroupFilter" onchange="filterByGroup('child')">
+                            <option value="">全部小组</option>
+                        </select>
                     </div>
                     <div id="childList"></div>
                 </div>
@@ -531,21 +994,76 @@
 
             <!-- 管理界面 -->
             <div id="manage" class="section">
+                <!-- Excel导入功能 -->
+                <div class="import-section">
+                    <div class="import-title">📊 Excel批量导入</div>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="excelFile" class="file-input" accept=".xlsx,.xls" onchange="importExcel(event)">
+                        <label for="excelFile" class="file-input-label">
+                            选择Excel文件导入成员
+                        </label>
+                    </div>
+                    <div class="import-info">
+                        支持格式：姓名 | 类型(成人/儿童) | 小组<br>
+                        示例：张三 | 成人 | 小组一
+                    </div>
+                </div>
+
+                <!-- 小组管理 -->
+                <div class="category-section">
+                    <div class="category-title">成人小组管理</div>
+                    <div class="group-management">
+                        <div class="group-list" id="adultGroupList"></div>
+                        <div class="group-input">
+                            <input type="text" id="newAdultGroup" placeholder="新建成人小组">
+                            <button onclick="addGroup('adult')">添加</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-section">
+                    <div class="category-title">儿童小组管理</div>
+                    <div class="group-management">
+                        <div class="group-list" id="childGroupList"></div>
+                        <div class="group-input">
+                            <input type="text" id="newChildGroup" placeholder="新建儿童小组">
+                            <button onclick="addGroup('child')">添加</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 成人名单 -->
                 <div class="category-section">
                     <div class="category-title">成人名单</div>
                     <div id="manageAdultList"></div>
                     <div class="add-member">
                         <input type="text" id="newAdultName" placeholder="输入成人姓名" />
+                        <select id="adultGroupSelect">
+                            <option value="">选择小组</option>
+                        </select>
                         <button class="add-btn" onclick="addMember('adult')">添加成人</button>
                     </div>
                 </div>
 
+                <!-- 儿童名单 -->
                 <div class="category-section">
                     <div class="category-title">儿童名单</div>
                     <div id="manageChildList"></div>
                     <div class="add-member">
                         <input type="text" id="newChildName" placeholder="输入儿童姓名" />
+                        <select id="childGroupSelect">
+                            <option value="">选择小组</option>
+                        </select>
                         <button class="add-btn" onclick="addMember('child')">添加儿童</button>
+                    </div>
+                </div>
+
+                <!-- 导出功能 -->
+                <div class="export-section">
+                    <div class="import-title">📤 数据导出</div>
+                    <div class="export-buttons">
+                        <button class="export-btn" onclick="exportToExcel()">导出Excel</button>
+                        <button class="export-btn" onclick="exportAttendance()">导出出席记录</button>
                     </div>
                 </div>
             </div>
@@ -556,11 +1074,27 @@
 
     <div class="success-message" id="successMessage">保存成功！</div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // 数据存储
         let members = {
-            adults: ['张三', '李四', '王五', '赵六'],
-            children: ['小明', '小红', '小华', '小丽']
+            adults: [
+                {name: '张三', group: '小组一'},
+                {name: '李四', group: '小组一'},
+                {name: '王五', group: '小组二'},
+                {name: '赵六', group: '小组二'}
+            ],
+            children: [
+                {name: '小明', group: '儿童A组'},
+                {name: '小红', group: '儿童A组'},
+                {name: '小华', group: '儿童B组'},
+                {name: '小丽', group: '儿童B组'}
+            ]
+        };
+
+        let groups = {
+            adults: ['小组一', '小组二', '小组三', '小组四'],
+            children: ['儿童A组', '儿童B组', '儿童C组']
         };
 
         let attendance = {
@@ -580,12 +1114,15 @@
             loadData();
             renderAttendanceList();
             renderManageList();
+            renderGroupManagement();
+            updateGroupSelects();
+            updateGroupFilters();
             updateStats();
             setupEventListeners();
             setupPWA();
             
-            // 2秒后隐藏启动画面
-            setTimeout(hideSplashScreen, 2000);
+            // 3秒后隐藏启动画面，让用户能看到logo
+            setTimeout(hideSplashScreen, 3000);
         });
 
         function showSplashScreen() {
@@ -606,36 +1143,6 @@
             if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
                 // 已经是PWA模式，不显示安装提示
                 return;
-            }
-            
-            // 注册Service Worker（用于离线支持）
-            if ('serviceWorker' in navigator) {
-                // 简单的内联Service Worker
-                const swCode = `
-                    self.addEventListener('install', function(e) {
-                        console.log('SW安装成功');
-                    });
-                    
-                    self.addEventListener('fetch', function(e) {
-                        // 基本的缓存策略
-                        e.respondWith(
-                            caches.match(e.request).then(function(response) {
-                                return response || fetch(e.request);
-                            })
-                        );
-                    });
-                `;
-                
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-                
-                navigator.serviceWorker.register(swUrl)
-                    .then(function(registration) {
-                        console.log('Service Worker 注册成功');
-                    })
-                    .catch(function(error) {
-                        console.log('Service Worker 注册失败:', error);
-                    });
             }
         }
 
@@ -738,21 +1245,251 @@
             const memberList = category === 'adult' ? members.adults : members.children;
             const attendedList = attendance[currentMeeting][category === 'adult' ? 'adults' : 'children'];
 
+            // 获取当前选择的小组过滤器
+            const filterSelect = document.getElementById(category === 'adult' ? 'adultGroupFilter' : 'childGroupFilter');
+            const selectedGroup = filterSelect ? filterSelect.value : '';
+
+            // 过滤成员
+            let filteredMembers = memberList;
+            if (selectedGroup) {
+                filteredMembers = memberList.filter(member => member.group === selectedGroup);
+            }
+
             listElement.innerHTML = '';
             
-            memberList.forEach(name => {
-                const isAttended = attendedList.includes(name);
+            filteredMembers.forEach(member => {
+                const isAttended = attendedList.includes(member.name);
                 const memberDiv = document.createElement('div');
                 memberDiv.className = 'member-item';
                 memberDiv.innerHTML = `
                     <input type="checkbox" class="member-checkbox" ${isAttended ? 'checked' : ''} 
-                           onchange="toggleAttendance('${category}', '${name}')">
-                    <span class="member-name">${name}</span>
+                           onchange="toggleAttendance('${category}', '${member.name}')">
+                    <div class="member-info">
+                        <div class="member-name">${member.name}</div>
+                        <div class="member-group">${member.group}</div>
+                    </div>
                 `;
                 listElement.appendChild(memberDiv);
             });
 
-            countElement.textContent = `${attendedList.length}/${memberList.length}`;
+            // 更新计数 - 显示过滤后的数量
+            const attendedInFilter = filteredMembers.filter(member => attendedList.includes(member.name)).length;
+            countElement.textContent = `${attendedInFilter}/${filteredMembers.length}`;
+        }
+
+        function filterByGroup(category) {
+            renderCategoryList(category, category === 'adult' ? 'adultList' : 'childList', 
+                              category === 'adult' ? 'adultCount' : 'childCount');
+        }
+
+        function updateGroupFilters() {
+            // 更新成人小组过滤器
+            const adultFilter = document.getElementById('adultGroupFilter');
+            if (adultFilter) {
+                adultFilter.innerHTML = '<option value="">全部小组</option>';
+                groups.adults.forEach(group => {
+                    adultFilter.innerHTML += `<option value="${group}">${group}</option>`;
+                });
+            }
+
+            // 更新儿童小组过滤器
+            const childFilter = document.getElementById('childGroupFilter');
+            if (childFilter) {
+                childFilter.innerHTML = '<option value="">全部小组</option>';
+                groups.children.forEach(group => {
+                    childFilter.innerHTML += `<option value="${group}">${group}</option>`;
+                });
+            }
+        }
+
+        function renderGroupManagement() {
+            renderGroupList('adult', 'adultGroupList');
+            renderGroupList('child', 'childGroupList');
+        }
+
+        function renderGroupList(category, listId) {
+            const listElement = document.getElementById(listId);
+            const groupList = category === 'adult' ? groups.adults : groups.children;
+
+            listElement.innerHTML = '';
+            groupList.forEach((group, index) => {
+                const groupTag = document.createElement('div');
+                groupTag.className = 'group-tag';
+                groupTag.innerHTML = `
+                    ${group}
+                    <button onclick="deleteGroup('${category}', ${index})" title="删除小组">×</button>
+                `;
+                listElement.appendChild(groupTag);
+            });
+        }
+
+        function addGroup(category) {
+            const inputId = category === 'adult' ? 'newAdultGroup' : 'newChildGroup';
+            const groupName = document.getElementById(inputId).value.trim();
+            
+            if (groupName) {
+                const groupList = category === 'adult' ? groups.adults : groups.children;
+                if (!groupList.includes(groupName)) {
+                    groupList.push(groupName);
+                    document.getElementById(inputId).value = '';
+                    renderGroupManagement();
+                    updateGroupSelects();
+                    updateGroupFilters();
+                    saveData();
+                } else {
+                    alert('小组名称已存在！');
+                }
+            }
+        }
+
+        function deleteGroup(category, index) {
+            if (confirm('确定要删除这个小组吗？小组成员将移动到未分组状态。')) {
+                const groupList = category === 'adult' ? groups.adults : groups.children;
+                const groupName = groupList[index];
+                
+                // 将该小组的成员设为未分组
+                const memberList = category === 'adult' ? members.adults : members.children;
+                memberList.forEach(member => {
+                    if (member.group === groupName) {
+                        member.group = '未分组';
+                    }
+                });
+                
+                groupList.splice(index, 1);
+                renderGroupManagement();
+                renderManageList();
+                updateGroupSelects();
+                updateGroupFilters();
+                saveData();
+            }
+        }
+
+        function updateGroupSelects() {
+            // 更新成人小组选择器
+            const adultSelect = document.getElementById('adultGroupSelect');
+            if (adultSelect) {
+                adultSelect.innerHTML = '<option value="">选择小组</option>';
+                groups.adults.forEach(group => {
+                    adultSelect.innerHTML += `<option value="${group}">${group}</option>`;
+                });
+            }
+
+            // 更新儿童小组选择器
+            const childSelect = document.getElementById('childGroupSelect');
+            if (childSelect) {
+                childSelect.innerHTML = '<option value="">选择小组</option>';
+                groups.children.forEach(group => {
+                    childSelect.innerHTML += `<option value="${group}">${group}</option>`;
+                });
+            }
+        }
+
+        function importExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                    let importCount = 0;
+                    jsonData.forEach((row, index) => {
+                        if (index === 0 || !row[0]) return; // 跳过标题行和空行
+
+                        const name = row[0]?.toString().trim();
+                        const type = row[1]?.toString().trim();
+                        const group = row[2]?.toString().trim() || '未分组';
+
+                        if (name && (type === '成人' || type === '儿童')) {
+                            const category = type === '成人' ? 'adults' : 'children';
+                            const memberList = members[category];
+                            
+                            // 检查是否已存在
+                            if (!memberList.find(m => m.name === name)) {
+                                memberList.push({ name, group });
+                                importCount++;
+
+                                // 自动添加新小组
+                                const groupList = category === 'adults' ? groups.adults : groups.children;
+                                if (group !== '未分组' && !groupList.includes(group)) {
+                                    groupList.push(group);
+                                }
+                            }
+                        }
+                    });
+
+                    if (importCount > 0) {
+                        alert(`成功导入 ${importCount} 个成员！`);
+                        renderManageList();
+                        renderGroupManagement();
+                        updateGroupSelects();
+                        updateGroupFilters();
+                        renderAttendanceList();
+                        saveData();
+                    } else {
+                        alert('没有找到有效的成员数据。请检查Excel格式。');
+                    }
+
+                } catch (error) {
+                    alert('Excel文件解析失败，请检查文件格式。');
+                    console.error('Excel导入错误:', error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            
+            // 成人数据
+            const adultData = [['姓名', '类型', '小组']];
+            members.adults.forEach(member => {
+                adultData.push([member.name, '成人', member.group]);
+            });
+            
+            // 儿童数据
+            members.children.forEach(member => {
+                adultData.push([member.name, '儿童', member.group]);
+            });
+            
+            const ws = XLSX.utils.aoa_to_sheet(adultData);
+            XLSX.utils.book_append_sheet(wb, ws, '成员名单');
+            
+            const filename = `圣经直道教会成员名单_${new Date().toLocaleDateString('zh-CN')}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        function exportAttendance() {
+            if (attendanceHistory.length === 0) {
+                alert('没有出席记录可导出');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const attendanceData = [['日期', '聚会类型', '成人出席', '儿童出席', '总出席', '出席率(%)']];
+            
+            attendanceHistory.forEach(record => {
+                const totalMembers = members.adults.length + members.children.length;
+                const rate = totalMembers > 0 ? ((record.total / totalMembers) * 100).toFixed(1) : 0;
+                attendanceData.push([
+                    record.date,
+                    record.meeting,
+                    record.adults,
+                    record.children,
+                    record.total,
+                    rate
+                ]);
+            });
+            
+            const ws = XLSX.utils.aoa_to_sheet(attendanceData);
+            XLSX.utils.book_append_sheet(wb, ws, '出席记录');
+            
+            const filename = `圣经直道教会出席记录_${new Date().toLocaleDateString('zh-CN')}.xlsx`;
+            XLSX.writeFile(wb, filename);
         }
 
         function toggleAttendance(category, name) {
@@ -913,6 +1650,12 @@
         function showSuccessMessage() {
             const message = document.getElementById('successMessage');
             message.style.display = 'block';
+            
+            // 触觉反馈
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+            
             setTimeout(() => {
                 message.style.display = 'none';
             }, 2000);
