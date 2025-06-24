@@ -493,14 +493,44 @@ function renderManageCategory(category, listId) {
         .import-title {
             font-size: 1rem;
             font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: #333;
+        }
+
+        .template-section {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #e8f5e8;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .template-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .template-btn:hover {
+            background: #1976D2;
+        }
+
+        .template-info {
+            font-size: 0.8rem;
+            color: #666;
         }
 
         .file-input-wrapper {
             position: relative;
             display: inline-block;
             width: 100%;
+            margin-bottom: 15px;
         }
 
         .file-input {
@@ -528,8 +558,12 @@ function renderManageCategory(category, listId) {
 
         .import-info {
             font-size: 0.8rem;
-            color: #666;
-            margin-top: 8px;
+            color: #555;
+            line-height: 1.4;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
         }
 
         .group-management {
@@ -997,15 +1031,34 @@ function renderManageCategory(category, listId) {
                 <!-- Excel导入功能 -->
                 <div class="import-section">
                     <div class="import-title">📊 Excel批量导入</div>
+                    
+                    <!-- 模板下载 -->
+                    <div class="template-section">
+                        <button class="template-btn" onclick="downloadTemplate()">
+                            📥 下载Excel模板
+                        </button>
+                        <div class="template-info">
+                            先下载模板，填写成员信息后再导入
+                        </div>
+                    </div>
+                    
+                    <!-- 文件导入 -->
                     <div class="file-input-wrapper">
                         <input type="file" id="excelFile" class="file-input" accept=".xlsx,.xls" onchange="importExcel(event)">
                         <label for="excelFile" class="file-input-label">
-                            选择Excel文件导入成员
+                            📂 选择Excel文件导入成员
                         </label>
                     </div>
+                    
                     <div class="import-info">
-                        支持格式：姓名 | 类型(成人/儿童) | 小组<br>
-                        示例：张三 | 成人 | 小组一
+                        <strong>📋 导入说明：</strong><br>
+                        1. 点击"下载Excel模板"获取标准格式<br>
+                        2. 在模板中填写：姓名、类型(成人/儿童)、小组<br>
+                        3. 保存后选择文件导入<br>
+                        <br>
+                        <strong>✅ 示例数据：</strong><br>
+                        张三 | 成人 | 小组一<br>
+                        小明 | 儿童 | 儿童A组
                     </div>
                 </div>
 
@@ -1384,6 +1437,69 @@ function renderManageCategory(category, listId) {
             }
         }
 
+        function downloadTemplate() {
+            // 创建模板数据
+            const templateData = [
+                ['姓名', '类型', '小组', '备注'],
+                ['张三', '成人', '小组一', '示例数据'],
+                ['李四', '成人', '小组一', '示例数据'],
+                ['王五', '成人', '小组二', '示例数据'],
+                ['赵六', '成人', '小组二', '示例数据'],
+                ['小明', '儿童', '儿童A组', '示例数据'],
+                ['小红', '儿童', '儿童A组', '示例数据'],
+                ['小华', '儿童', '儿童B组', '示例数据'],
+                ['小丽', '儿童', '儿童B组', '示例数据'],
+                ['', '', '', ''],
+                ['填写说明：', '', '', ''],
+                ['1. 姓名：必填，成员的真实姓名', '', '', ''],
+                ['2. 类型：必填，只能填"成人"或"儿童"', '', '', ''],
+                ['3. 小组：选填，不填写则自动归为"未分组"', '', '', ''],
+                ['4. 备注：选填，可以留空', '', '', ''],
+                ['', '', '', ''],
+                ['注意事项：', '', '', ''],
+                ['• 删除示例数据，填入真实成员信息', '', '', ''],
+                ['• 保持第一行标题不变', '', '', ''],
+                ['• 类型只能是"成人"或"儿童"', '', '', ''],
+                ['• 小组名称可以自定义', '', '', ''],
+                ['• 保存为Excel格式后导入', '', '', '']
+            ];
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            
+            // 设置列宽
+            ws['!cols'] = [
+                { wch: 15 }, // 姓名列
+                { wch: 10 }, // 类型列
+                { wch: 15 }, // 小组列
+                { wch: 25 }  // 备注列
+            ];
+            
+            // 设置样式（标题行）
+            const headerStyle = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "4CAF50" } },
+                alignment: { horizontal: "center" }
+            };
+            
+            // 应用标题样式
+            ['A1', 'B1', 'C1', 'D1'].forEach(cell => {
+                if (ws[cell]) {
+                    ws[cell].s = headerStyle;
+                }
+            });
+            
+            XLSX.utils.book_append_sheet(wb, ws, '成员导入模板');
+            
+            // 下载文件
+            const filename = `圣经直道教会_成员导入模板_${new Date().toLocaleDateString('zh-CN')}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            
+            // 显示下载成功提示
+            showSuccessMessage('模板下载成功！请填写后导入。');
+        }
+
         function importExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1397,45 +1513,75 @@ function renderManageCategory(category, listId) {
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
                     let importCount = 0;
+                    let skipCount = 0;
+                    let errorRows = [];
+
                     jsonData.forEach((row, index) => {
-                        if (index === 0 || !row[0]) return; // 跳过标题行和空行
+                        // 跳过标题行、空行、说明行
+                        if (index === 0 || !row[0] || row[0].includes('填写说明') || row[0].includes('注意事项') || row[0] === '') {
+                            return;
+                        }
 
                         const name = row[0]?.toString().trim();
                         const type = row[1]?.toString().trim();
                         const group = row[2]?.toString().trim() || '未分组';
 
-                        if (name && (type === '成人' || type === '儿童')) {
-                            const category = type === '成人' ? 'adults' : 'children';
-                            const memberList = members[category];
-                            
-                            // 检查是否已存在
-                            if (!memberList.find(m => m.name === name)) {
-                                memberList.push({ name, group });
-                                importCount++;
+                        // 验证数据
+                        if (!name) {
+                            errorRows.push(`第${index + 1}行：姓名不能为空`);
+                            return;
+                        }
 
-                                // 自动添加新小组
-                                const groupList = category === 'adults' ? groups.adults : groups.children;
-                                if (group !== '未分组' && !groupList.includes(group)) {
-                                    groupList.push(group);
-                                }
-                            }
+                        if (type !== '成人' && type !== '儿童') {
+                            errorRows.push(`第${index + 1}行：类型必须是"成人"或"儿童"`);
+                            return;
+                        }
+
+                        const category = type === '成人' ? 'adults' : 'children';
+                        const memberList = members[category];
+                        
+                        // 检查是否已存在
+                        if (memberList.find(m => m.name === name)) {
+                            skipCount++;
+                            return;
+                        }
+
+                        // 添加成员
+                        memberList.push({ name, group });
+                        importCount++;
+
+                        // 自动添加新小组
+                        const groupList = category === 'adults' ? groups.adults : groups.children;
+                        if (group !== '未分组' && !groupList.includes(group)) {
+                            groupList.push(group);
                         }
                     });
 
+                    // 显示导入结果
+                    let message = `导入完成！\n✅ 成功导入：${importCount} 个成员`;
+                    if (skipCount > 0) {
+                        message += `\n⚠️ 跳过重复：${skipCount} 个成员`;
+                    }
+                    if (errorRows.length > 0) {
+                        message += `\n❌ 错误数据：\n${errorRows.join('\n')}`;
+                    }
+
+                    alert(message);
+
                     if (importCount > 0) {
-                        alert(`成功导入 ${importCount} 个成员！`);
                         renderManageList();
                         renderGroupManagement();
                         updateGroupSelects();
                         updateGroupFilters();
                         renderAttendanceList();
                         saveData();
-                    } else {
-                        alert('没有找到有效的成员数据。请检查Excel格式。');
                     }
 
+                    // 清空文件选择
+                    event.target.value = '';
+
                 } catch (error) {
-                    alert('Excel文件解析失败，请检查文件格式。');
+                    alert('Excel文件解析失败，请检查文件格式或下载最新模板。');
                     console.error('Excel导入错误:', error);
                 }
             };
@@ -1620,7 +1766,7 @@ function renderManageCategory(category, listId) {
             }
 
             saveData();
-            showSuccessMessage();
+            showSuccessMessage('出席记录保存成功！');
         }
 
         function renderHistory() {
@@ -1647,9 +1793,10 @@ function renderManageCategory(category, listId) {
             });
         }
 
-        function showSuccessMessage() {
-            const message = document.getElementById('successMessage');
-            message.style.display = 'block';
+        function showSuccessMessage(message = '保存成功！') {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            successElement.style.display = 'block';
             
             // 触觉反馈
             if (navigator.vibrate) {
@@ -1657,8 +1804,8 @@ function renderManageCategory(category, listId) {
             }
             
             setTimeout(() => {
-                message.style.display = 'none';
-            }, 2000);
+                successElement.style.display = 'none';
+            }, 3000);
         }
 
         function saveData() {
