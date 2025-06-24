@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>教会点名统计</title>
+    
+    <!-- PWA 配置 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="教会点名">
+    <meta name="theme-color" content="#4CAF50">
+    
+    <!-- 应用图标 -->
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%234CAF50'/%3E%3Cpath d='M90 40c-16.569 0-30 13.431-30 30 0 22.5 30 70 30 70s30-47.5 30-70c0-16.569-13.431-30-30-30zm0 40c-5.523 0-10-4.477-10-10s4.477-10 10-10 10 4.477 10 10-4.477 10-10 10z' fill='white'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234CAF50'/%3E%3Cpath d='M16 7c-3 0-5.4 2.4-5.4 5.4 0 4 5.4 12.6 5.4 12.6s5.4-8.6 5.4-12.6C21.4 9.4 19 7 16 7zm0 7.2c-1 0-1.8-.8-1.8-1.8s.8-1.8 1.8-1.8 1.8.8 1.8 1.8-.8 1.8-1.8 1.8z' fill='white'/%3E%3C/svg%3E">
+    
+    <!-- 启动画面 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Manifest文件链接 -->
+    <link rel="manifest" href="data:application/json,%7B%22name%22%3A%22%E6%95%99%E4%BC%9A%E7%82%B9%E5%90%8D%E7%BB%9F%E8%AE%A1%22%2C%22short_name%22%3A%22%E6%95%99%E4%BC%9A%E7%82%B9%E5%90%8D%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23ffffff%22%2C%22theme_color%22%3A%22%234CAF50%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%3D%27http%3A//www.w3.org/2000/svg%27%2520viewBox%3D%270%25200%2520512%2520512%27%253E%253Crect%2520width%3D%27512%27%2520height%3D%27512%27%2520rx%3D%27102%27%2520fill%3D%27%25234CAF50%27/%253E%253Cpath%2520d%3D%27M256%2520114c-47%25200-85%252038-85%252085%25200%252064%252085%2520199%252085%2520199s85-135%252085-199c0-47-38-85-85-85zm0%2520114c-16%25200-28-12-28-28s12-28%252028-28%252028%252012%252028%252028-12%252028-28%252028z%27%2520fill%3D%27white%27/%253E%253C/svg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image/svg%2Bxml%22%7D%5D%7D">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .header .date {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #4CAF50;
+            border-bottom: 3px solid #4CAF50;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .meeting-selector {
+            margin-bottom: 20px;
+        }
+
+        .meeting-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .meeting-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .meeting-btn.active {
+            border-color: #4CAF50;
+            background: #f8fff8;
+            color: #4CAF50;
+        }
+
+        .category-section {
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .category-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .member-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .member-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .member-name {
+            flex: 1;
+            font-size: 1rem;
+        }
+
+        .member-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .edit-btn {
+            background: #2196F3;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .add-member {
+            margin-top: 15px;
+        }
+
+        .add-member input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .add-member input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .add-btn:hover {
+            background: #45a049;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .history-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .history-date {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .history-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .floating-save {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .floating-save:hover {
+            transform: scale(1.1);
+        }
+
+        .success-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+        }
+
+        /* PWA 启动画面样式 */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+        }
+
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 60px;
+            color: #4CAF50;
+        }
+
+        .splash-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .splash-subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* 安装提示 */
+        .install-prompt {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #333;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .install-prompt.show {
+            transform: translateY(0);
+        }
+
+        .install-prompt button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 启动画面 -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-logo">⛪</div>
+        <div class="splash-text">教会点名统计</div>
+        <div class="splash-subtitle">简单高效的聚会管理</div>
+    </div>
+
+    <!-- 安装提示 -->
+    <div class="install-prompt" id="installPrompt">
+        <div>将此应用添加到主屏幕以获得更好体验</div>
+        <button onclick="showInstallInstructions()">了解如何安装</button>
+        <button onclick="hideInstallPrompt()">暂不</button>
+    </div>
+
+    <div class="container" id="mainApp" style="display: none;">
+        <div class="header">
+            <h1>教会点名统计</h1>
+            <div class="date" id="currentDate"></div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showSection('attendance')">点名</button>
+            <button class="nav-tab" onclick="showSection('stats')">统计</button>
+            <button class="nav-tab" onclick="showSection('manage')">管理</button>
+        </div>
+
+        <div class="content">
+            <!-- 点名界面 -->
+            <div id="attendance" class="section active">
+                <div class="meeting-selector">
+                    <div class="meeting-buttons">
+                        <button class="meeting-btn active" data-meeting="friday">周五聚会</button>
+                        <button class="meeting-btn" data-meeting="sunday">周日聚会</button>
+                    </div>
+                </div>
+
+                <div class="category-section">
+                    <div class="category-title">
+                        成人 <span id="adultCount">0/0</span>
+                    </div>
+                    <div id="adultList"></div>
+                </div>
+
+                <div class="category-section">
+                    <div class="category-title">
+                        儿童 <span id="childCount">0/0</span>
+                    </div>
+                    <div id="childList"></div>
+                </div>
+            </div>
+
+            <!-- 统计界面 -->
+            <div id="stats" class="section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="todayTotal">0</div>
+                        <div class="stat-label">今日总数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="todayAdults">0</div>
+                        <div class="stat-label">成人</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="todayChildren">0</div>
+                        <div class="stat-label">儿童</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="attendanceRate">0%</div>
+                        <div class="stat-label">出席率</div>
+                    </div>
+                </div>
+
+                <div class="category-section">
+                    <div class="category-title">出席历史</div>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+
+            <!-- 管理界面 -->
+            <div id="manage" class="section">
+                <div class="category-section">
+                    <div class="category-title">成人名单</div>
+                    <div id="manageAdultList"></div>
+                    <div class="add-member">
+                        <input type="text" id="newAdultName" placeholder="输入成人姓名" />
+                        <button class="add-btn" onclick="addMember('adult')">添加成人</button>
+                    </div>
+                </div>
+
+                <div class="category-section">
+                    <div class="category-title">儿童名单</div>
+                    <div id="manageChildList"></div>
+                    <div class="add-member">
+                        <input type="text" id="newChildName" placeholder="输入儿童姓名" />
+                        <button class="add-btn" onclick="addMember('child')">添加儿童</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="floating-save" onclick="saveAttendance()" title="保存出席记录">💾</button>
+    </div>
+
+    <div class="success-message" id="successMessage">保存成功！</div>
+
+    <script>
+        // 数据存储
+        let members = {
+            adults: ['张三', '李四', '王五', '赵六'],
+            children: ['小明', '小红', '小华', '小丽']
+        };
+
+        let attendance = {
+            friday: { adults: [], children: [] },
+            sunday: { adults: [], children: [] }
+        };
+
+        let currentMeeting = 'friday';
+        let attendanceHistory = [];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 显示启动画面
+            showSplashScreen();
+            
+            updateCurrentDate();
+            loadData();
+            renderAttendanceList();
+            renderManageList();
+            updateStats();
+            setupEventListeners();
+            setupPWA();
+            
+            // 2秒后隐藏启动画面
+            setTimeout(hideSplashScreen, 2000);
+        });
+
+        function showSplashScreen() {
+            document.getElementById('splashScreen').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+        }
+
+        function hideSplashScreen() {
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            
+            // 检查是否需要显示安装提示
+            setTimeout(checkInstallPrompt, 1000);
+        }
+
+        function setupPWA() {
+            // 检查是否为PWA模式
+            if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+                // 已经是PWA模式，不显示安装提示
+                return;
+            }
+            
+            // 注册Service Worker（用于离线支持）
+            if ('serviceWorker' in navigator) {
+                // 简单的内联Service Worker
+                const swCode = `
+                    self.addEventListener('install', function(e) {
+                        console.log('SW安装成功');
+                    });
+                    
+                    self.addEventListener('fetch', function(e) {
+                        // 基本的缓存策略
+                        e.respondWith(
+                            caches.match(e.request).then(function(response) {
+                                return response || fetch(e.request);
+                            })
+                        );
+                    });
+                `;
+                
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                
+                navigator.serviceWorker.register(swUrl)
+                    .then(function(registration) {
+                        console.log('Service Worker 注册成功');
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker 注册失败:', error);
+                    });
+            }
+        }
+
+        function checkInstallPrompt() {
+            // 检查是否为移动设备且不是PWA模式
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+            
+            if (isMobile && !isStandalone && !localStorage.getItem('installPromptDismissed')) {
+                document.getElementById('installPrompt').classList.add('show');
+            }
+        }
+
+        function hideInstallPrompt() {
+            document.getElementById('installPrompt').classList.remove('show');
+            localStorage.setItem('installPromptDismissed', 'true');
+        }
+
+        function showInstallInstructions() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            
+            let instructions = '';
+            
+            if (isIOS) {
+                instructions = `在iPhone/iPad上安装此应用：
+
+1. 点击Safari浏览器底部的分享按钮 📤
+2. 向下滚动找到"添加到主屏幕" 📱
+3. 点击"添加到主屏幕"
+4. 确认添加
+
+安装后，应用将出现在主屏幕上，就像原生App一样！`;
+            } else if (isAndroid) {
+                instructions = `在Android手机上安装此应用：
+
+1. 点击Chrome浏览器菜单 ⋮
+2. 选择"添加到主屏幕"或"安装应用"
+3. 确认安装
+
+安装后，应用将出现在主屏幕上！`;
+            } else {
+                instructions = `在移动设备上：
+- iPhone: Safari > 分享 > 添加到主屏幕
+- Android: Chrome > 菜单 > 添加到主屏幕`;
+            }
+            
+            alert(instructions);
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', options);
+        }
+
+        function setupEventListeners() {
+            // 聚会类型切换
+            document.querySelectorAll('.meeting-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.meeting-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentMeeting = this.dataset.meeting;
+                    renderAttendanceList();
+                    updateStats();
+                });
+            });
+        }
+
+        function showSection(sectionName) {
+            // 更新标签
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // 显示对应内容
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionName).classList.add('active');
+
+            if (sectionName === 'stats') {
+                updateStats();
+                renderHistory();
+            } else if (sectionName === 'manage') {
+                renderManageList();
+            }
+        }
+
+        function renderAttendanceList() {
+            renderCategoryList('adult', 'adultList', 'adultCount');
+            renderCategoryList('child', 'childList', 'childCount');
+        }
+
+        function renderCategoryList(category, listId, countId) {
+            const listElement = document.getElementById(listId);
+            const countElement = document.getElementById(countId);
+            const memberList = category === 'adult' ? members.adults : members.children;
+            const attendedList = attendance[currentMeeting][category === 'adult' ? 'adults' : 'children'];
+
+            listElement.innerHTML = '';
+            
+            memberList.forEach(name => {
+                const isAttended = attendedList.includes(name);
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'member-item';
+                memberDiv.innerHTML = `
+                    <input type="checkbox" class="member-checkbox" ${isAttended ? 'checked' : ''} 
+                           onchange="toggleAttendance('${category}', '${name}')">
+                    <span class="member-name">${name}</span>
+                `;
+                listElement.appendChild(memberDiv);
+            });
+
+            countElement.textContent = `${attendedList.length}/${memberList.length}`;
+        }
+
+        function toggleAttendance(category, name) {
+            const categoryKey = category === 'adult' ? 'adults' : 'children';
+            const attendedList = attendance[currentMeeting][categoryKey];
+            
+            if (attendedList.includes(name)) {
+                attendance[currentMeeting][categoryKey] = attendedList.filter(n => n !== name);
+            } else {
+                attendedList.push(name);
+            }
+            
+            renderAttendanceList();
+            updateStats();
+        }
+
+        function renderManageList() {
+            renderManageCategory('adult', 'manageAdultList');
+            renderManageCategory('child', 'manageChildList');
+        }
+
+        function renderManageCategory(category, listId) {
+            const listElement = document.getElementById(listId);
+            const memberList = category === 'adult' ? members.adults : members.children;
+
+            listElement.innerHTML = '';
+            
+            memberList.forEach((name, index) => {
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'member-item';
+                memberDiv.innerHTML = `
+                    <span class="member-name">${name}</span>
+                    <div class="member-controls">
+                        <button class="edit-btn" onclick="editMember('${category}', ${index})">编辑</button>
+                        <button class="delete-btn" onclick="deleteMember('${category}', ${index})">删除</button>
+                    </div>
+                `;
+                listElement.appendChild(memberDiv);
+            });
+        }
+
+        function addMember(category) {
+            const inputId = category === 'adult' ? 'newAdultName' : 'newChildName';
+            const name = document.getElementById(inputId).value.trim();
+            
+            if (name) {
+                if (category === 'adult') {
+                    members.adults.push(name);
+                } else {
+                    members.children.push(name);
+                }
+                
+                document.getElementById(inputId).value = '';
+                renderManageList();
+                renderAttendanceList();
+                saveData();
+            }
+        }
+
+        function editMember(category, index) {
+            const memberList = category === 'adult' ? members.adults : members.children;
+            const newName = prompt('修改姓名:', memberList[index]);
+            
+            if (newName && newName.trim()) {
+                memberList[index] = newName.trim();
+                renderManageList();
+                renderAttendanceList();
+                saveData();
+            }
+        }
+
+        function deleteMember(category, index) {
+            if (confirm('确定要删除这个成员吗？')) {
+                if (category === 'adult') {
+                    members.adults.splice(index, 1);
+                } else {
+                    members.children.splice(index, 1);
+                }
+                renderManageList();
+                renderAttendanceList();
+                saveData();
+            }
+        }
+
+        function updateStats() {
+            const currentAttendance = attendance[currentMeeting];
+            const totalAttended = currentAttendance.adults.length + currentAttendance.children.length;
+            const totalMembers = members.adults.length + members.children.length;
+            const rate = totalMembers > 0 ? Math.round((totalAttended / totalMembers) * 100) : 0;
+
+            document.getElementById('todayTotal').textContent = totalAttended;
+            document.getElementById('todayAdults').textContent = currentAttendance.adults.length;
+            document.getElementById('todayChildren').textContent = currentAttendance.children.length;
+            document.getElementById('attendanceRate').textContent = rate + '%';
+        }
+
+        function saveAttendance() {
+            const today = new Date().toLocaleDateString('zh-CN');
+            const meetingType = currentMeeting === 'friday' ? '周五聚会' : '周日聚会';
+            const currentAttendance = attendance[currentMeeting];
+            
+            // 检查是否已经保存过今天的记录
+            const existingIndex = attendanceHistory.findIndex(record => 
+                record.date === today && record.meeting === meetingType
+            );
+
+            const record = {
+                date: today,
+                meeting: meetingType,
+                adults: currentAttendance.adults.length,
+                children: currentAttendance.children.length,
+                total: currentAttendance.adults.length + currentAttendance.children.length,
+                attendedMembers: {
+                    adults: [...currentAttendance.adults],
+                    children: [...currentAttendance.children]
+                }
+            };
+
+            if (existingIndex >= 0) {
+                attendanceHistory[existingIndex] = record;
+            } else {
+                attendanceHistory.unshift(record);
+            }
+
+            // 只保留最近30条记录
+            if (attendanceHistory.length > 30) {
+                attendanceHistory = attendanceHistory.slice(0, 30);
+            }
+
+            saveData();
+            showSuccessMessage();
+        }
+
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            if (attendanceHistory.length === 0) {
+                historyList.innerHTML = '<div style="text-align: center; color: #666;">暂无历史记录</div>';
+                return;
+            }
+
+            attendanceHistory.forEach(record => {
+                const historyDiv = document.createElement('div');
+                historyDiv.className = 'history-item';
+                historyDiv.innerHTML = `
+                    <div class="history-date">${record.date} - ${record.meeting}</div>
+                    <div class="history-stats">
+                        <span>成人: ${record.adults}</span>
+                        <span>儿童: ${record.children}</span>
+                        <span>总计: ${record.total}</span>
+                    </div>
+                `;
+                historyList.appendChild(historyDiv);
+            });
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 2000);
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('churchMembers', JSON.stringify(members));
+                localStorage.setItem('churchAttendance', JSON.stringify(attendance));
+                localStorage.setItem('churchHistory', JSON.stringify(attendanceHistory));
+                console.log('数据已保存到本地存储');
+            } catch (error) {
+                console.error('保存数据失败:', error);
+            }
+        }
+
+        function loadData() {
+            try {
+                const savedMembers = localStorage.getItem('churchMembers');
+                const savedAttendance = localStorage.getItem('churchAttendance');
+                const savedHistory = localStorage.getItem('churchHistory');
+                
+                if (savedMembers) {
+                    members = JSON.parse(savedMembers);
+                }
+                
+                if (savedAttendance) {
+                    attendance = JSON.parse(savedAttendance);
+                }
+                
+                if (savedHistory) {
+                    attendanceHistory = JSON.parse(savedHistory);
+                }
+                
+                console.log('数据已从本地存储加载');
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                // 如果加载失败，使用默认数据
+                members = {
+                    adults: ['张三', '李四', '王五', '赵六'],
+                    children: ['小明', '小红', '小华', '小丽']
+                };
+            }
+        }
+    </script>
+</body>
+</html>
