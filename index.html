@@ -12,8 +12,8 @@
     <meta name="theme-color" content="#4CAF50">
     
     <!-- 应用图标 -->
-    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%234CAF50'/%3E%3Cpath d='M90 40c-16.569 0-30 13.431-30 30 0 22.5 30 70 30 70s30-47.5 30-70c0-16.569-13.431-30-30-30zm0 40c-5.523 0-10-4.477-10-10s4.477-10 10-10 10 4.477 10 10-4.477 10-10 10z' fill='white'/%3E%3C/svg%3E">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234CAF50'/%3E%3Cpath d='M16 7c-3 0-5.4 2.4-5.4 5.4 0 4 5.4 12.6 5.4 12.6s5.4-8.6 5.4-12.6C21.4 9.4 19 7 16 7zm0 7.2c-1 0-1.8-.8-1.8-1.8s.8-1.8 1.8-1.8 1.8.8 1.8 1.8-.8 1.8-1.8 1.8z' fill='white'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%234CAF50'/%3E%3Crect x='82' y='30' width='16' height='70' fill='white'/%3E%3Crect x='50' y='60' width='80' height='16' fill='white'/%3E%3Crect x='30' y='90' width='120' height='50' rx='6' fill='%238B4513'/%3E%3Crect x='36' y='96' width='108' height='38' rx='4' fill='%23D2691E'/%3E%3Cline x1='45' y1='106' x2='135' y2='106' stroke='%238B4513' stroke-width='3'/%3E%3Cline x1='45' y1='116' x2='115' y2='116' stroke='%238B4513' stroke-width='3'/%3E%3Cline x1='45' y1='126' x2='125' y2='126' stroke='%238B4513' stroke-width='3'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234CAF50'/%3E%3Crect x='14' y='5' width='4' height='14' fill='white'/%3E%3Crect x='8' y='12' width='16' height='4' fill='white'/%3E%3Crect x='6' y='18' width='20' height='10' rx='1' fill='%238B4513'/%3E%3Crect x='7' y='19' width='18' height='8' rx='1' fill='%23D2691E'/%3E%3Cline x1='9' y1='21' x2='23' y2='21' stroke='%238B4513' stroke-width='1'/%3E%3Cline x1='9' y1='23' x2='19' y2='23' stroke='%238B4513' stroke-width='1'/%3E%3Cline x1='9' y1='25' x2='21' y2='25' stroke='%238B4513' stroke-width='1'/%3E%3C/svg%3E">
     
     <!-- 启动画面 -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -51,9 +51,53 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
+        .church-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            gap: 15px;
+        }
+
+        .logo-image {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .logo-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .church-info {
+            text-align: left;
+        }
+
+        .church-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 2px;
+            color: white;
+        }
+
+        .church-name-en {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            font-weight: normal;
+        }
+
         .header h1 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             margin-bottom: 5px;
+            margin-top: 10px;
         }
 
         .header .date {
@@ -331,8 +375,7 @@
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
-            font-size: 60px;
-            color: #4CAF50;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
 
         .splash-text {
@@ -379,9 +422,21 @@
 <body>
     <!-- 启动画面 -->
     <div class="splash-screen" id="splashScreen">
-        <div class="splash-logo">⛪</div>
-        <div class="splash-text">教会点名统计</div>
-        <div class="splash-subtitle">简单高效的聚会管理</div>
+        <div class="splash-logo">
+            <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <!-- 十字架 -->
+                <rect x="36" y="15" width="8" height="35" fill="#4CAF50"/>
+                <rect x="25" y="30" width="30" height="8" fill="#4CAF50"/>
+                <!-- 圣经 -->
+                <rect x="15" y="45" width="50" height="25" rx="3" fill="#8B4513"/>
+                <rect x="18" y="48" width="44" height="19" rx="2" fill="#D2691E"/>
+                <line x1="22" y1="53" x2="58" y2="53" stroke="#8B4513" stroke-width="2"/>
+                <line x1="22" y1="58" x2="50" y2="58" stroke="#8B4513" stroke-width="2"/>
+                <line x1="22" y1="63" x2="54" y2="63" stroke="#8B4513" stroke-width="2"/>
+            </svg>
+        </div>
+        <div class="splash-text">圣经直道教会</div>
+        <div class="splash-subtitle">聚会点名统计系统</div>
     </div>
 
     <!-- 安装提示 -->
@@ -393,7 +448,26 @@
 
     <div class="container" id="mainApp" style="display: none;">
         <div class="header">
-            <h1>教会点名统计</h1>
+            <div class="church-logo">
+                <div class="logo-image">
+                    <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 十字架 -->
+                        <rect x="20" y="8" width="4" height="20" fill="#4CAF50"/>
+                        <rect x="14" y="16" width="16" height="4" fill="#4CAF50"/>
+                        <!-- 圣经 -->
+                        <rect x="10" y="24" width="24" height="16" rx="2" fill="#8B4513"/>
+                        <rect x="12" y="26" width="20" height="12" rx="1" fill="#D2691E"/>
+                        <line x1="15" y1="29" x2="29" y2="29" stroke="#8B4513" stroke-width="1"/>
+                        <line x1="15" y1="32" x2="25" y2="32" stroke="#8B4513" stroke-width="1"/>
+                        <line x1="15" y1="35" x2="27" y2="35" stroke="#8B4513" stroke-width="1"/>
+                    </svg>
+                </div>
+                <div class="church-info">
+                    <div class="church-name">圣经直道教会</div>
+                    <div class="church-name-en">LOGOS BIBLE CHURCH</div>
+                </div>
+            </div>
+            <h1>聚会点名统计</h1>
             <div class="date" id="currentDate"></div>
         </div>
 
