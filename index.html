@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>圣经直道教会 - 出席统计</title>
-    <!-- EmailJS SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/emailjs/3.2.0/email.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -461,7 +459,8 @@
 
             <div style="text-align: center; margin-top: 30px;">
                 <button class="btn btn-success" onclick="exportData()">📊 导出出席数据</button>
-                <button class="btn btn-primary" onclick="emailAttendanceReport()">📧 发送点名报告</button>
+                <button class="btn btn-primary" onclick="emailAttendanceReport()">📧 生成邮件报告</button>
+                <button class="btn btn-secondary" onclick="copyReportToClipboard()" style="margin-left: 10px;">📋 复制报告</button>
             </div>
         </div>
     </div>
@@ -509,11 +508,8 @@
             sunday: {}
         };
 
-        // EmailJS configuration
+        // Email configuration
         const EMAIL_CONFIG = {
-            serviceId: 'service_5m5lyfs', // Your EmailJS Service ID
-            templateId: 'template_nz6rhqq', // Your EmailJS Template ID
-            publicKey: '-g4LYh8HZH3_tnI2O', // Your EmailJS Public Key
             targetEmail: 'kzhao8@gmail.com'
         };
 
@@ -526,13 +522,8 @@
             updateStats('friday');
             updateStats('sunday');
             
-            // Initialize EmailJS
-            if (window.emailjs) {
-                emailjs.init(EMAIL_CONFIG.publicKey);
-                console.log('EmailJS initialized successfully');
-            } else {
-                console.warn('EmailJS not loaded');
-            }
+            console.log('✅ 应用初始化完成 - 使用内置邮件功能');
+            console.log('目标邮箱:', EMAIL_CONFIG.targetEmail);
         }
 
         // Update date displays
@@ -789,47 +780,132 @@
             localStorage.setItem('churchMembersDatabase', data);
         }
 
-        // Email attendance report
+        // Generate and open email report (using mailto)
         function emailAttendanceReport() {
+            console.log('生成邮件报告...');
+            
             const now = new Date();
             const reportData = generateAttendanceReport();
             
-            // Prepare email content
-            const emailContent = {
-                to_email: EMAIL_CONFIG.targetEmail,
-                from_name: '圣经直道教会出席系统',
-                subject: `教会出席报告 - ${now.toLocaleDateString('zh-CN')}`,
-                message: formatEmailMessage(reportData),
-                report_date: now.toLocaleDateString('zh-CN'),
-                friday_total: reportData.friday.totalMembers,
-                friday_groups: reportData.friday.totalGroups,
-                sunday_total: reportData.sunday.totalMembers,
-                sunday_groups: reportData.sunday.totalGroups,
-                friday_attendance: formatAttendanceForEmail(reportData.friday.groups),
-                sunday_attendance: formatAttendanceForEmail(reportData.sunday.groups)
-            };
+            // Check if there's any attendance data
+            if (reportData.friday.totalMembers === 0 && reportData.sunday.totalMembers === 0) {
+                alert('⚠️ 没有出席数据可发送。请先添加一些出席记录。');
+                return;
+            }
+            
+            // Format email content
+            const subject = encodeURIComponent(`圣经直道教会出席报告 - ${now.toLocaleDateString('zh-CN')}`);
+            const body = encodeURIComponent(formatEmailMessage(reportData));
+            
+            // Create mailto link
+            const mailtoLink = `mailto:${EMAIL_CONFIG.targetEmail}?subject=${subject}&body=${body}`;
+            
+            // Check if mailto link is too long (some email clients have limits)
+            if (mailtoLink.length > 2000) {
+                alert('📧 报告内容较长，将使用复制方式\n\n点击"确定"后报告将复制到剪贴板，您可以手动粘贴到邮件中。');
+                copyReportToClipboard();
+                return;
+            }
+            
+            // Try to open default email client
+            try {
+                window.location.href = mailtoLink;
+                alert('✅ 已打开默认邮件客户端\n\n' + 
+                      '收件人: ' + EMAIL_CONFIG.targetEmail + '\n' +
+                      '如果邮件客户端没有打开，请点击"复制报告"按钮手动发送。');
+            } catch (error) {
+                console.error('无法打开邮件客户端:', error);
+                alert('❌ 无法打开邮件客户端\n\n将为您复制报告内容，请手动发送邮件。');
+                copyReportToClipboard();
+            }
+        }
 
-            // Show loading state
-            const sendButton = event.target;
-            const originalText = sendButton.textContent;
-            sendButton.textContent = '发送中...';
-            sendButton.disabled = true;
-
-            // Send email using EmailJS
-            emailjs.send(EMAIL_CONFIG.serviceId, EMAIL_CONFIG.templateId, emailContent, EMAIL_CONFIG.publicKey)
-                .then(function(response) {
-                    alert('✅ 点名报告已成功发送到 ' + EMAIL_CONFIG.targetEmail);
-                    console.log('Email sent successfully:', response);
-                })
-                .catch(function(error) {
-                    console.error('Email send failed:', error);
-                    alert('❌ 发送失败：' + (error.text || error.message || '未知错误') + 
-                          '\n\n请检查网络连接或联系管理员。\n\n作为备选方案，您可以复制以下报告内容：\n\n' + emailContent.message);
-                })
-                .finally(function() {
-                    sendButton.textContent = originalText;
-                    sendButton.disabled = false;
+        // Copy report to clipboard
+        function copyReportToClipboard() {
+            const reportData = generateAttendanceReport();
+            const reportText = formatEmailMessage(reportData);
+            
+            // Try to copy to clipboard
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(reportText).then(() => {
+                    alert('✅ 报告已复制到剪贴板！\n\n' +
+                          '请按以下步骤发送邮件：\n' +
+                          '1. 打开您的邮件客户端\n' +
+                          '2. 新建邮件给：' + EMAIL_CONFIG.targetEmail + '\n' +
+                          '3. 粘贴报告内容 (Ctrl+V)\n' +
+                          '4. 发送邮件');
+                }).catch(err => {
+                    fallbackCopyMethod(reportText);
                 });
+            } else {
+                fallbackCopyMethod(reportText);
+            }
+        }
+
+        // Fallback copy method for older browsers
+        function fallbackCopyMethod(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert('✅ 报告已复制到剪贴板！\n\n' +
+                      '请按以下步骤发送邮件：\n' +
+                      '1. 打开您的邮件客户端\n' +
+                      '2. 新建邮件给：' + EMAIL_CONFIG.targetEmail + '\n' +
+                      '3. 粘贴报告内容 (Ctrl+V)\n' +
+                      '4. 发送邮件');
+            } catch (err) {
+                // Show the text in a dialog if all else fails
+                const message = '无法自动复制，请手动复制以下内容发送给：' + EMAIL_CONFIG.targetEmail + '\n\n' + text;
+                
+                // Create a modal to show the text
+                showReportModal(text);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        // Show report in a modal for manual copying
+        function showReportModal(reportText) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.5); z-index: 2000; 
+                display: flex; justify-content: center; align-items: center;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; padding: 30px; border-radius: 15px; 
+                max-width: 80%; max-height: 80%; overflow: auto;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            `;
+            
+            content.innerHTML = `
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">出席报告 - 请手动复制</h3>
+                <p style="margin-bottom: 15px; color: #7f8c8d;">
+                    发送给: <strong>${EMAIL_CONFIG.targetEmail}</strong>
+                </p>
+                <textarea readonly style="width: 100%; height: 300px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace; font-size: 12px;">${reportText}</textarea>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">关闭</button>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Select all text in textarea
+            const textarea = content.querySelector('textarea');
+            textarea.focus();
+            textarea.select();
         }
 
         // Generate attendance report data
@@ -893,6 +969,28 @@
         }
 
         // Show email setup instructions
+        function showEmailSetupInstructions() {
+            const instructions = `
+📧 邮件功能使用说明：
+
+由于网络限制，已切换为本地邮件功能
+
+🎯 使用方法：
+1. 添加出席数据
+2. 点击"生成邮件报告"
+3. 系统将自动打开默认邮件客户端
+4. 或使用"复制报告"手动发送
+
+📋 备选方案：
+• 复制报告内容
+• 手动粘贴到邮件中
+• 发送给：${EMAIL_CONFIG.targetEmail}
+
+✅ 功能完全正常，只是发送方式有所调整
+            `;
+            
+            alert(instructions);
+        }
         function showEmailSetupInstructions() {
             const instructions = `
 📧 邮件功能配置状态：
