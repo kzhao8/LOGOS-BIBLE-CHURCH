@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圣经直道教会 - 出席统计</title>
+    <!-- EmailJS SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/emailjs/3.2.0/email.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .service-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            background: #ecf0f1;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .tab-button:hover {
+            background: #2980b9;
+            color: white;
+        }
+
+        .service-section {
+            display: none;
+        }
+
+        .service-section.active {
+            display: block;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto auto;
+            gap: 15px;
+            margin-bottom: 25px;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .input-group select, .input-group input {
+            padding: 10px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group select:focus, .input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            height: fit-content;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            margin: 0 10px;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .member-selector {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #ecf0f1;
+        }
+
+        .member-selector h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .member-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .member-checkbox:hover {
+            background: #f1f2f6;
+        }
+
+        .member-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .member-checkbox label {
+            cursor: pointer;
+            font-size: 0.95em;
+            flex: 1;
+        }
+
+        .groups-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .group-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .group-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .group-name {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .group-count {
+            background: #3498db;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .member-name {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .attendance-summary {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .date-display {
+            background: #34495e;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .groups-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .members-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ 圣经直道教会出席统计</h1>
+            <p>周五和周日聚会出席追踪系统</p>
+        </div>
+
+        <div class="main-content">
+            <div class="service-tabs">
+                <button class="tab-button active" onclick="switchService('friday')">周五聚会</button>
+                <button class="tab-button" onclick="switchService('sunday')">周日聚会</button>
+            </div>
+
+            <div id="friday-service" class="service-section active">
+                <div class="date-display" id="friday-date"></div>
+                
+                <div class="attendance-summary">
+                    <h3>周五聚会统计</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="friday-total-count">0</span>
+                            <span class="stat-label">总出席人数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="friday-groups-count">0</span>
+                            <span class="stat-label">参与小组数</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="member-selector">
+                    <h3>选择出席成员 (按小组)</h3>
+                    <div class="controls">
+                        <div class="input-group">
+                            <label for="friday-group-select">选择小组</label>
+                            <select id="friday-group-select" onchange="loadGroupMembers('friday')">
+                                <option value="">选择小组...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="friday-custom-member">或添加新人</label>
+                            <input type="text" id="friday-custom-member" placeholder="输入新人姓名">
+                        </div>
+                        <button class="btn btn-secondary" onclick="addCustomMember('friday')">添加新人</button>
+                        <button class="btn btn-primary" onclick="clearSelection('friday')">清空选择</button>
+                    </div>
+                    
+                    <div id="friday-members-grid" class="members-grid" style="display: none;"></div>
+                    
+                    <div class="bulk-actions">
+                        <button class="btn btn-success" onclick="markSelectedPresent('friday')">标记选中为出席</button>
+                        <button class="btn btn-secondary" onclick="selectAllGroup('friday')">全选当前小组</button>
+                        <button class="btn btn-primary" onclick="showAddNewMemberModal('friday')">添加新成员到小组</button>
+                    </div>
+                </div>
+
+                <div id="friday-groups" class="groups-container"></div>
+            </div>
+
+            <div id="sunday-service" class="service-section">
+                <div class="date-display" id="sunday-date"></div>
+                
+                <div class="attendance-summary">
+                    <h3>周日聚会统计</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="sunday-total-count">0</span>
+                            <span class="stat-label">总出席人数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="sunday-groups-count">0</span>
+                            <span class="stat-label">参与小组数</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="member-selector">
+                    <h3>选择出席成员 (按小组)</h3>
+                    <div class="controls">
+                        <div class="input-group">
+                            <label for="sunday-group-select">选择小组</label>
+                            <select id="sunday-group-select" onchange="loadGroupMembers('sunday')">
+                                <option value="">选择小组...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="sunday-custom-member">或添加新人</label>
+                            <input type="text" id="sunday-custom-member" placeholder="输入新人姓名">
+                        </div>
+                        <button class="btn btn-secondary" onclick="addCustomMember('sunday')">添加新人</button>
+                        <button class="btn btn-primary" onclick="clearSelection('sunday')">清空选择</button>
+                    </div>
+                    
+                    <div id="sunday-members-grid" class="members-grid" style="display: none;"></div>
+                    
+                    <div class="bulk-actions">
+                        <button class="btn btn-success" onclick="markSelectedPresent('sunday')">标记选中为出席</button>
+                        <button class="btn btn-secondary" onclick="selectAllGroup('sunday')">全选当前小组</button>
+                        <button class="btn btn-primary" onclick="showAddNewMemberModal('sunday')">添加新成员到小组</button>
+                    </div>
+                </div>
+
+                <div id="sunday-groups" class="groups-container"></div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-success" onclick="exportData()">📊 导出出席数据</button>
+                <button class="btn btn-primary" onclick="emailAttendanceReport()">📧 发送点名报告</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Member Modal -->
+    <div id="newMemberModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+            <h3 style="margin-bottom: 20px; color: #2c3e50;">添加新成员到小组</h3>
+            
+            <div class="input-group" style="margin-bottom: 15px;">
+                <label for="newMemberName">成员姓名</label>
+                <input type="text" id="newMemberName" placeholder="输入新成员姓名" style="width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 8px;">
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label for="newMemberGroup">选择小组</label>
+                <select id="newMemberGroup" style="width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 8px;">
+                    <option value="">选择小组...</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeAddNewMemberModal()">取消</button>
+                <button class="btn btn-primary" onclick="addNewMemberToGroup()">添加成员</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Church member data from Excel file
+        const churchMembers = {
+            "喜乐": ["謝孝光", "王瑋", "王輔仁", "鍾秀蘭", "王健", "胡幼鈞", "沈國忠", "蔡立立", "颜美珍", "黎小容", "金顯德", "莊融", "盛華錚"],
+            "平安": ["王雯瑛", "歐忠男", "歐楊佐惠", "梁寰", "Wendy", "徐 珊", "朱大白", "陈平一", "徐爱全", "齊治平", "王媛琳", "王蘋娟", "粱宓", "俞威華", "李靜芳", "王瑞栋", "王唯中", "周立華"],
+            "恩慈": ["李鼎民", "王美元", "李王致敏", "游國烊", "汪绮敏", "汪嘉振", "朱秀贞Jane", "李許韻蘇", "陳露德", "陳拉結", "沈逸珊", "王美寶", "胡焯明", "Daniel陈", "周雪英", "Tracy 贾", "王沛修", "徐琦文", "Lily Chang", "Avery Peng 彭"],
+            "活水": ["虞一峰", "邓滔", "王韶輝", "謝雯莉", "卢玲", "赵联胜", "許超", "Alvin", "郭湘寧", "王軍", "Harry Wu", "馬春", "張曉春", "王曉婷", "王定家/云生", "刘丹", "杨明峰", "艾琳", "蘇燕萍", "吳高翔", "王筱璐Vivian", "Jay", "杜珍", "張中生", "李少芳", "王水木", "玉荣", "杨琳", "吴 Serena", "王依瑤", "裴云", "徐秀琴", "瞿曉紅", "Jennifer", "苏薇薇", "李春浩", "彭丽", "陳玫虹"],
+            "恩惠": ["徐崇雷", "南榮芳", "孔庆颖", "王兆祥", "金梅", "付丹丹", "宋立山", "郭向东", "劉瑤", "熊涛Vivian", "吕敏", "Tina Xie", "尹曉榮", "何健", "戴方", "李群", "Lilian", "周賽萍", "劉小美", "㑎蕊", "梁雪玲", "連先生", "辛小龙", "李桂兰", "梁永芳", "朱樹瑾", "司雙見", "Chris", "王妈妈", "江 黎", "黎敏", "Shirley Lee", "张英俊Jean", "凌賴羅綺", "顾炳祝", "刘锦芸"],
+            "香柏樹": ["布秀英", "郭菊英", "銭金娣", "曹鳳娥", "葛子萍", "曹佩珍", "萬愛姺", "王秀兰", "戴淑夏", "陆美英"],
+            "青橄欖": ["张哲千", "孟繁浩", "馮黎予", "游家珮", "史夢亭", "章文司", "原超", "李圆汐", "杜亨荣", "趙卿", "陳文峰", "Eric", "Laura", "张思妍", "沈辰辰", "Derek", "Grace", "Sean", "Precilia", "余芷敏", "吴浩然", "唐哲森", "孙意", "吕昊华", "Kei", "李梓瑶", "Gelvin", "李鎬然", "吴卓一", "顾达维David", "顾利亚"],
+            "牧者": ["趙牧師", "趙師母", "陳樹民長老", "惠玲師母", "闫岩传道", "李佩珊", "凌志鹏牧師", "鄭隆保牧師", "黃錦聯", "黃貴珍", "趙子又牧師", "劉富理牧師", "黄明鎮牧师", "莊泽豊牧师", "蔡正驊牧師", "李前明牧师", "周景升牧师师母", "劉少平牧師师母", "蕭宏鵬牧師師母", "蔡耀明", "廖愛華", "邱茂松牧師", "何崇禧牧師師母", "王良忠牧師師母", "刘俊安牧师师母", "吕敏", "郭东绪牧师师母", "叶俊明牧师", "邵晨光牧师", "Matt Doan", "Eric", "盧恆牧师", "刘孝勇院长"]
+        };
+
+        // Data storage
+        let attendanceData = {
+            friday: {},
+            sunday: {}
+        };
+
+        // EmailJS configuration
+        const EMAIL_CONFIG = {
+            serviceId: 'service_5m5lyfs', // Your EmailJS Service ID
+            templateId: 'template_nz6rhqq', // Your EmailJS Template ID
+            publicKey: '-g4LYh8HZH3_tnI2O', // Your EmailJS Public Key
+            targetEmail: 'kzhao8@gmail.com'
+        };
+
+        // Initialize the app
+        function init() {
+            updateDateDisplays();
+            loadMemberDatabase(); // Load any new members added previously
+            populateGroupSelectors();
+            loadData();
+            updateStats('friday');
+            updateStats('sunday');
+            
+            // Initialize EmailJS
+            if (window.emailjs) {
+                emailjs.init(EMAIL_CONFIG.publicKey);
+                console.log('EmailJS initialized successfully');
+            } else {
+                console.warn('EmailJS not loaded');
+            }
+        }
+
+        // Update date displays
+        function updateDateDisplays() {
+            const now = new Date();
+            
+            // Find next Friday
+            const nextFriday = new Date();
+            nextFriday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
+            if (now.getDay() === 5) nextFriday.setDate(now.getDate());
+            
+            // Find next Sunday
+            const nextSunday = new Date();
+            nextSunday.setDate(now.getDate() + (7 - now.getDay()) % 7);
+            if (now.getDay() === 0) nextSunday.setDate(now.getDate());
+            
+            document.getElementById('friday-date').textContent = 
+                `周五聚会 - ${nextFriday.toLocaleDateString('zh-CN')}`;
+            document.getElementById('sunday-date').textContent = 
+                `周日聚会 - ${nextSunday.toLocaleDateString('zh-CN')}`;
+        }
+
+        // Populate group selector dropdowns
+        function populateGroupSelectors() {
+            const groupNames = Object.keys(churchMembers);
+            
+            ['friday', 'sunday'].forEach(service => {
+                const selector = document.getElementById(`${service}-group-select`);
+                selector.innerHTML = '<option value="">选择小组...</option>';
+                
+                groupNames.forEach(groupName => {
+                    const option = document.createElement('option');
+                    option.value = groupName;
+                    option.textContent = `${groupName} (${churchMembers[groupName].length}人)`;
+                    selector.appendChild(option);
+                });
+            });
+        }
+
+        // Load group members for selection
+        function loadGroupMembers(service) {
+            const groupSelect = document.getElementById(`${service}-group-select`);
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const selectedGroup = groupSelect.value;
+
+            if (!selectedGroup) {
+                membersGrid.style.display = 'none';
+                return;
+            }
+
+            const members = churchMembers[selectedGroup];
+            membersGrid.innerHTML = '';
+            membersGrid.style.display = 'grid';
+
+            members.forEach(member => {
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'member-checkbox';
+                
+                const memberId = `${service}-${selectedGroup}-${member}`.replace(/[^a-zA-Z0-9]/g, '');
+                
+                memberDiv.innerHTML = `
+                    <input type="checkbox" id="${memberId}" value="${member}">
+                    <label for="${memberId}">${member}</label>
+                `;
+                
+                membersGrid.appendChild(memberDiv);
+            });
+        }
+
+        // Switch between services
+        function switchService(service) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update service sections
+            document.querySelectorAll('.service-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`${service}-service`).classList.add('active');
+        }
+
+        // Mark selected members as present
+        function markSelectedPresent(service) {
+            const groupSelect = document.getElementById(`${service}-group-select`);
+            const selectedGroup = groupSelect.value;
+            
+            if (!selectedGroup) {
+                alert('请先选择一个小组');
+                return;
+            }
+
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const checkboxes = membersGrid.querySelectorAll('input[type="checkbox"]:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('请至少选择一名成员');
+                return;
+            }
+
+            // Initialize group if it doesn't exist
+            if (!attendanceData[service][selectedGroup]) {
+                attendanceData[service][selectedGroup] = [];
+            }
+
+            let addedCount = 0;
+            checkboxes.forEach(checkbox => {
+                const memberName = checkbox.value;
+                if (!attendanceData[service][selectedGroup].includes(memberName)) {
+                    attendanceData[service][selectedGroup].push(memberName);
+                    addedCount++;
+                }
+                checkbox.checked = false;
+            });
+
+            if (addedCount > 0) {
+                renderGroups(service);
+                updateStats(service);
+                saveData();
+                alert(`成功添加 ${addedCount} 名成员到出席名单`);
+            } else {
+                alert('选中的成员已在出席名单中');
+            }
+        }
+
+        // Select all members in current group
+        function selectAllGroup(service) {
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const checkboxes = membersGrid.querySelectorAll('input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        // Clear all selections
+        function clearSelection(service) {
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const checkboxes = membersGrid.querySelectorAll('input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        // Add custom member (new person)
+        function addCustomMember(service) {
+            const input = document.getElementById(`${service}-custom-member`);
+            const memberName = input.value.trim();
+            
+            if (!memberName) {
+                alert('请输入新人姓名');
+                return;
+            }
+
+            const newPersonGroup = '新人';
+            
+            // Initialize new person group if it doesn't exist
+            if (!attendanceData[service][newPersonGroup]) {
+                attendanceData[service][newPersonGroup] = [];
+            }
+
+            // Check if member already exists
+            if (attendanceData[service][newPersonGroup].includes(memberName)) {
+                alert('该新人已在出席名单中');
+                return;
+            }
+
+            // Add new person
+            attendanceData[service][newPersonGroup].push(memberName);
+            
+            // Clear input
+            input.value = '';
+            
+            // Update display
+            renderGroups(service);
+            updateStats(service);
+            saveData();
+            
+            alert(`新人 ${memberName} 已添加到出席名单`);
+        }
+
+        // Show add new member modal
+        function showAddNewMemberModal(service) {
+            const modal = document.getElementById('newMemberModal');
+            const groupSelect = document.getElementById('newMemberGroup');
+            
+            // Clear previous values
+            document.getElementById('newMemberName').value = '';
+            groupSelect.innerHTML = '<option value="">选择小组...</option>';
+            
+            // Populate group options
+            Object.keys(churchMembers).forEach(groupName => {
+                const option = document.createElement('option');
+                option.value = groupName;
+                option.textContent = `${groupName} (${churchMembers[groupName].length}人)`;
+                groupSelect.appendChild(option);
+            });
+            
+            // Store current service for later use
+            modal.dataset.service = service;
+            modal.style.display = 'flex';
+        }
+
+        // Close add new member modal
+        function closeAddNewMemberModal() {
+            document.getElementById('newMemberModal').style.display = 'none';
+        }
+
+        // Add new member to church group
+        function addNewMemberToGroup() {
+            const modal = document.getElementById('newMemberModal');
+            const memberName = document.getElementById('newMemberName').value.trim();
+            const groupName = document.getElementById('newMemberGroup').value;
+            
+            if (!memberName || !groupName) {
+                alert('请输入成员姓名并选择小组');
+                return;
+            }
+
+            // Check if member already exists in the group
+            if (churchMembers[groupName].includes(memberName)) {
+                alert('该成员已存在于此小组中');
+                return;
+            }
+
+            // Add member to church database
+            churchMembers[groupName].push(memberName);
+            
+            // Refresh group selectors
+            populateGroupSelectors();
+            
+            // If current group is selected, refresh member grid
+            const service = modal.dataset.service;
+            const currentGroupSelect = document.getElementById(`${service}-group-select`);
+            if (currentGroupSelect.value === groupName) {
+                loadGroupMembers(service);
+            }
+            
+            // Close modal
+            closeAddNewMemberModal();
+            
+            // Save updated member database
+            saveMemberDatabase();
+            
+            alert(`成员 ${memberName} 已成功添加到 ${groupName} 小组`);
+        }
+
+        // Save member database to localStorage
+        function saveMemberDatabase() {
+            const data = JSON.stringify(churchMembers);
+            localStorage.setItem('churchMembersDatabase', data);
+        }
+
+        // Email attendance report
+        function emailAttendanceReport() {
+            const now = new Date();
+            const reportData = generateAttendanceReport();
+            
+            // Prepare email content
+            const emailContent = {
+                to_email: EMAIL_CONFIG.targetEmail,
+                from_name: '圣经直道教会出席系统',
+                subject: `教会出席报告 - ${now.toLocaleDateString('zh-CN')}`,
+                message: formatEmailMessage(reportData),
+                report_date: now.toLocaleDateString('zh-CN'),
+                friday_total: reportData.friday.totalMembers,
+                friday_groups: reportData.friday.totalGroups,
+                sunday_total: reportData.sunday.totalMembers,
+                sunday_groups: reportData.sunday.totalGroups,
+                friday_attendance: formatAttendanceForEmail(reportData.friday.groups),
+                sunday_attendance: formatAttendanceForEmail(reportData.sunday.groups)
+            };
+
+            // Show loading state
+            const sendButton = event.target;
+            const originalText = sendButton.textContent;
+            sendButton.textContent = '发送中...';
+            sendButton.disabled = true;
+
+            // Send email using EmailJS
+            emailjs.send(EMAIL_CONFIG.serviceId, EMAIL_CONFIG.templateId, emailContent, EMAIL_CONFIG.publicKey)
+                .then(function(response) {
+                    alert('✅ 点名报告已成功发送到 ' + EMAIL_CONFIG.targetEmail);
+                    console.log('Email sent successfully:', response);
+                })
+                .catch(function(error) {
+                    console.error('Email send failed:', error);
+                    alert('❌ 发送失败：' + (error.text || error.message || '未知错误') + 
+                          '\n\n请检查网络连接或联系管理员。\n\n作为备选方案，您可以复制以下报告内容：\n\n' + emailContent.message);
+                })
+                .finally(function() {
+                    sendButton.textContent = originalText;
+                    sendButton.disabled = false;
+                });
+        }
+
+        // Generate attendance report data
+        function generateAttendanceReport() {
+            return {
+                exportDate: new Date().toISOString(),
+                church: '圣经直道教会',
+                friday: {
+                    totalMembers: Object.values(attendanceData.friday).reduce((sum, members) => sum + members.length, 0),
+                    totalGroups: Object.keys(attendanceData.friday).length,
+                    groups: Object.keys(attendanceData.friday).map(groupName => ({
+                        name: groupName,
+                        count: attendanceData.friday[groupName].length,
+                        members: attendanceData.friday[groupName]
+                    }))
+                },
+                sunday: {
+                    totalMembers: Object.values(attendanceData.sunday).reduce((sum, members) => sum + members.length, 0),
+                    totalGroups: Object.keys(attendanceData.sunday).length,
+                    groups: Object.keys(attendanceData.sunday).map(groupName => ({
+                        name: groupName,
+                        count: attendanceData.sunday[groupName].length,
+                        members: attendanceData.sunday[groupName]
+                    }))
+                }
+            };
+        }
+
+        // Format attendance data for email
+        function formatAttendanceForEmail(groups) {
+            if (groups.length === 0) return '无出席记录';
+            
+            return groups.map(group => 
+                `${group.name} (${group.count}人): ${group.members.join(', ')}`
+            ).join('\n');
+        }
+
+        // Format complete email message
+        function formatEmailMessage(reportData) {
+            const now = new Date();
+            let message = `圣经直道教会出席报告\n`;
+            message += `报告日期: ${now.toLocaleDateString('zh-CN')} ${now.toLocaleTimeString('zh-CN')}\n\n`;
+            
+            message += `📊 总体统计:\n`;
+            message += `周五聚会: ${reportData.friday.totalMembers}人出席 (${reportData.friday.totalGroups}个小组)\n`;
+            message += `周日聚会: ${reportData.sunday.totalMembers}人出席 (${reportData.sunday.totalGroups}个小组)\n\n`;
+            
+            if (reportData.friday.totalMembers > 0) {
+                message += `🙏 周五聚会详情:\n`;
+                message += formatAttendanceForEmail(reportData.friday.groups) + '\n\n';
+            }
+            
+            if (reportData.sunday.totalMembers > 0) {
+                message += `⛪ 周日聚会详情:\n`;
+                message += formatAttendanceForEmail(reportData.sunday.groups) + '\n\n';
+            }
+            
+            message += `---\n此报告由圣经直道教会出席统计系统自动生成`;
+            
+            return message;
+        }
+
+        // Show email setup instructions
+        function showEmailSetupInstructions() {
+            const instructions = `
+📧 邮件功能配置状态：
+
+✅ 已完成所有配置：
+- Service ID: service_5m5lyfs
+- Template ID: template_nz6rhqq  
+- Public Key: -g4LYh8HZH3_tnI2O
+- 目标邮箱: kzhao8@gmail.com
+
+🎉 邮件功能已就绪！
+
+您现在可以：
+1. 添加出席数据
+2. 点击"发送点名报告"按钮
+3. 报告将自动发送到 kzhao8@gmail.com
+
+📧 邮件模板变量说明：
+确保您的 EmailJS 模板 (template_nz6rhqq) 包含：
+- {{message}} - 完整的报告内容
+- {{subject}} - 邮件标题
+- {{from_name}} - 发送人名称
+- {{to_email}} - 收件人邮箱
+
+如果发送失败，请检查：
+1. 网络连接
+2. EmailJS 服务状态
+3. 模板配置是否正确
+            `;
+            
+            alert(instructions);
+        }
+        function loadMemberDatabase() {
+            const savedData = localStorage.getItem('churchMembersDatabase');
+            if (savedData) {
+                const loadedMembers = JSON.parse(savedData);
+                // Merge with original data, preserving new additions
+                Object.keys(loadedMembers).forEach(groupName => {
+                    if (churchMembers[groupName]) {
+                        // Add any new members that aren't in the original list
+                        loadedMembers[groupName].forEach(member => {
+                            if (!churchMembers[groupName].includes(member)) {
+                                churchMembers[groupName].push(member);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        function removeMember(service, groupName, memberName) {
+            const group = attendanceData[service][groupName];
+            const index = group.indexOf(memberName);
+            
+            if (index > -1) {
+                group.splice(index, 1);
+                
+                // Remove group if empty
+                if (group.length === 0) {
+                    delete attendanceData[service][groupName];
+                }
+                
+                renderGroups(service);
+                updateStats(service);
+                saveData();
+            }
+        }
+
+        // Render groups for a service
+        function renderGroups(service) {
+            const container = document.getElementById(`${service}-groups`);
+            container.innerHTML = '';
+
+            const groups = attendanceData[service];
+            
+            Object.keys(groups).forEach(groupName => {
+                const members = groups[groupName];
+                
+                const groupCard = document.createElement('div');
+                groupCard.className = 'group-card';
+                
+                groupCard.innerHTML = `
+                    <div class="group-header">
+                        <div class="group-name">${groupName}</div>
+                        <div class="group-count">${members.length}</div>
+                    </div>
+                    <div class="members-list">
+                        ${members.map(member => `
+                            <div class="member-item">
+                                <span class="member-name">${member}</span>
+                                <button class="btn btn-danger" onclick="removeMember('${service}', '${groupName}', '${member}')">移除</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(groupCard);
+            });
+        }
+
+        // Update statistics
+        function updateStats(service) {
+            const groups = attendanceData[service];
+            const totalMembers = Object.values(groups).reduce((sum, members) => sum + members.length, 0);
+            const totalGroups = Object.keys(groups).length;
+
+            document.getElementById(`${service}-total-count`).textContent = totalMembers;
+            document.getElementById(`${service}-groups-count`).textContent = totalGroups;
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            const data = JSON.stringify(attendanceData);
+            localStorage.setItem('churchAttendanceData', data);
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const savedData = localStorage.getItem('churchAttendanceData');
+            if (savedData) {
+                attendanceData = JSON.parse(savedData);
+                renderGroups('friday');
+                renderGroups('sunday');
+            }
+        }
+
+        // Export attendance data
+        function exportData() {
+            const now = new Date();
+            const exportData = {
+                exportDate: now.toISOString(),
+                exportDateChinese: now.toLocaleDateString('zh-CN'),
+                church: '圣经直道教会',
+                fridayAttendance: attendanceData.friday,
+                sundayAttendance: attendanceData.sunday,
+                summary: {
+                    friday: {
+                        totalMembers: Object.values(attendanceData.friday).reduce((sum, members) => sum + members.length, 0),
+                        totalGroups: Object.keys(attendanceData.friday).length,
+                        groups: Object.keys(attendanceData.friday).map(groupName => ({
+                            name: groupName,
+                            count: attendanceData.friday[groupName].length,
+                            members: attendanceData.friday[groupName]
+                        }))
+                    },
+                    sunday: {
+                        totalMembers: Object.values(attendanceData.sunday).reduce((sum, members) => sum + members.length, 0),
+                        totalGroups: Object.keys(attendanceData.sunday).length,
+                        groups: Object.keys(attendanceData.sunday).map(groupName => ({
+                            name: groupName,
+                            count: attendanceData.sunday[groupName].length,
+                            members: attendanceData.sunday[groupName]
+                        }))
+                    }
+                },
+                totalChurchMembers: Object.values(churchMembers).reduce((sum, members) => sum + members.length, 0),
+                totalSmallGroups: Object.keys(churchMembers).length
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `圣经直道教会出席统计-${now.toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // Initialize the app when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Allow Enter key to add custom members
+            ['friday', 'sunday'].forEach(service => {
+                const customInput = document.getElementById(`${service}-custom-member`);
+                customInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addCustomMember(service);
+                    }
+                });
+            });
+
+            // Allow Enter key in new member modal
+            document.getElementById('newMemberName').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addNewMemberToGroup();
+                }
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('newMemberModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeAddNewMemberModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
