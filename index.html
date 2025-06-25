@@ -1,80 +1,657 @@
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圣经直道教会 - 出席统计</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-const groupMembers = [
-  { name: "謝孝光", group: "喜乐" },
-  { name: "王瑋", group: "喜乐" },
-  { name: "王輔仁", group: "喜乐" },
-  { name: "鍾秀蘭", group: "喜乐" },
-  { name: "王健", group: "喜乐" },
-  // 可根据需要继续添加成员数据
-];
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-const uniqueGroups = [...new Set(groupMembers.map(m => m.group))];
-const uniqueNames = groupMembers.map(m => m.name);
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
 
-export default function AttendanceApp() {
-  const [day, setDay] = useState("friday");
-  const [group, setGroup] = useState("");
-  const [name, setName] = useState("");
-  const [records, setRecords] = useState({ friday: {}, sunday: {} });
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
 
-  const addAttendance = () => {
-    if (!group || !name) return;
-    setRecords(prev => {
-      const dayRecords = { ...prev[day] };
-      if (!dayRecords[group]) dayRecords[group] = [];
-      if (!dayRecords[group].includes(name)) dayRecords[group].push(name);
-      return { ...prev, [day]: dayRecords };
-    });
-    setName("");
-  };
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
 
-  const switchDay = () => {
-    setDay(prev => (prev === "friday" ? "sunday" : "friday"));
-  };
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
 
-  return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center space-x-2">
-        <Button onClick={switchDay}>Switch to {day === "friday" ? "Sunday" : "Friday"}</Button>
-        <span className="font-bold text-lg">Current Day: {day}</span>
-      </div>
+        .main-content {
+            padding: 30px;
+        }
 
-      <div className="space-y-2">
-        <Input placeholder="Small Group Name" value={group} onChange={e => setGroup(e.target.value)} list="group-list" />
-        <datalist id="group-list">
-          {uniqueGroups.map((g, i) => (
-            <option key={i} value={g} />
-          ))}
-        </datalist>
+        .service-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
 
-        <Input placeholder="Person's Name" value={name} onChange={e => setName(e.target.value)} list="name-list" />
-        <datalist id="name-list">
-          {uniqueNames.map((n, i) => (
-            <option key={i} value={n} />
-          ))}
-        </datalist>
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            background: #ecf0f1;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
 
-        <Button onClick={addAttendance}>Add Attendance</Button>
-      </div>
+        .tab-button.active {
+            background: #3498db;
+            color: white;
+        }
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {Object.entries(records[day]).map(([groupName, attendees]) => (
-          <Card key={groupName}>
-            <CardContent className="p-4">
-              <h2 className="text-xl font-semibold mb-2">Group: {groupName}</h2>
-              <ul className="list-disc pl-5">
-                {attendees.map((person, index) => (
-                  <li key={index}>{person}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        .tab-button:hover {
+            background: #2980b9;
+            color: white;
+        }
+
+        .service-section {
+            display: none;
+        }
+
+        .service-section.active {
+            display: block;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto auto;
+            gap: 15px;
+            margin-bottom: 25px;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .input-group select, .input-group input {
+            padding: 10px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group select:focus, .input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            height: fit-content;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .member-selector {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #ecf0f1;
+        }
+
+        .member-selector h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .member-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .member-checkbox:hover {
+            background: #f1f2f6;
+        }
+
+        .member-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .member-checkbox label {
+            cursor: pointer;
+            font-size: 0.95em;
+            flex: 1;
+        }
+
+        .groups-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .group-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .group-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .group-name {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .group-count {
+            background: #3498db;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .member-name {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .attendance-summary {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .date-display {
+            background: #34495e;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: inline-block;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .groups-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .members-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ 圣经直道教会出席统计</h1>
+            <p>周五和周日聚会出席追踪系统</p>
+        </div>
+
+        <div class="main-content">
+            <div class="service-tabs">
+                <button class="tab-button active" onclick="switchService('friday')">周五聚会</button>
+                <button class="tab-button" onclick="switchService('sunday')">周日聚会</button>
+            </div>
+
+            <div id="friday-service" class="service-section active">
+                <div class="date-display" id="friday-date"></div>
+                
+                <div class="attendance-summary">
+                    <h3>周五聚会统计</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="friday-total-count">0</span>
+                            <span class="stat-label">总出席人数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="friday-groups-count">0</span>
+                            <span class="stat-label">参与小组数</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="member-selector">
+                    <h3>选择出席成员 (按小组)</h3>
+                    <div class="controls">
+                        <div class="input-group">
+                            <label for="friday-group-select">选择小组</label>
+                            <select id="friday-group-select" onchange="loadGroupMembers('friday')">
+                                <option value="">选择小组...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="friday-custom-member">或添加访客</label>
+                            <input type="text" id="friday-custom-member" placeholder="输入访客姓名">
+                        </div>
+                        <button class="btn btn-secondary" onclick="addCustomMember('friday')">添加访客</button>
+                        <button class="btn btn-primary" onclick="clearSelection('friday')">清空选择</button>
+                    </div>
+                    
+                    <div id="friday-members-grid" class="members-grid" style="display: none;"></div>
+                    
+                    <div class="bulk-actions">
+                        <button class="btn btn-success" onclick="markSelectedPresent('friday')">标记选中为出席</button>
+                        <button class="btn btn-secondary" onclick="selectAllGroup('friday')">全选当前小组</button>
+                    </div>
+                </div>
+
+                <div id="friday-groups" class="groups-container"></div>
+            </div>
+
+            <div id="sunday-service" class="service-section">
+                <div class="date-display" id="sunday-date"></div>
+                
+                <div class="attendance-summary">
+                    <h3>周日聚会统计</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="sunday-total-count">0</span>
+                            <span class="stat-label">总出席人数</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="sunday-groups-count">0</span>
+                            <span class="stat-label">参与小组数</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="member-selector">
+                    <h3>选择出席成员 (按小组)</h3>
+                    <div class="controls">
+                        <div class="input-group">
+                            <label for="sunday-group-select">选择小组</label>
+                            <select id="sunday-group-select" onchange="loadGroupMembers('sunday')">
+                                <option value="">选择小组...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="sunday-custom-member">或添加访客</label>
+                            <input type="text" id="sunday-custom-member" placeholder="输入访客姓名">
+                        </div>
+                        <button class="btn btn-secondary" onclick="addCustomMember('sunday')">添加访客</button>
+                        <button class="btn btn-primary" onclick="clearSelection('sunday')">清空选择</button>
+                    </div>
+                    
+                    <div id="sunday-members-grid" class="members-grid" style="display: none;"></div>
+                    
+                    <div class="bulk-actions">
+                        <button class="btn btn-success" onclick="markSelectedPresent('sunday')">标记选中为出席</button>
+                        <button class="btn btn-secondary" onclick="selectAllGroup('sunday')">全选当前小组</button>
+                    </div>
+                </div>
+
+                <div id="sunday-groups" class="groups-container"></div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-success" onclick="exportData()">📊 导出出席数据</button>
+            </div>
+        </div>
     </div>
-  );
-}
+
+    <script>
+        // Church member data from Excel file
+        const churchMembers = {
+            "喜乐": ["謝孝光", "王瑋", "王輔仁", "鍾秀蘭", "王健", "胡幼鈞", "沈國忠", "蔡立立", "颜美珍", "黎小容", "金顯德", "莊融", "盛華錚"],
+            "平安": ["王雯瑛", "歐忠男", "歐楊佐惠", "梁寰", "Wendy", "徐 珊", "朱大白", "陈平一", "徐爱全", "齊治平", "王媛琳", "王蘋娟", "粱宓", "俞威華", "李靜芳", "王瑞栋", "王唯中", "周立華"],
+            "恩慈": ["李鼎民", "王美元", "李王致敏", "游國烊", "汪绮敏", "汪嘉振", "朱秀贞Jane", "李許韻蘇", "陳露德", "陳拉結", "沈逸珊", "王美寶", "胡焯明", "Daniel陈", "周雪英", "Tracy 贾", "王沛修", "徐琦文", "Lily Chang", "Avery Peng 彭"],
+            "活水": ["虞一峰", "邓滔", "王韶輝", "謝雯莉", "卢玲", "赵联胜", "許超", "Alvin", "郭湘寧", "王軍", "Harry Wu", "馬春", "張曉春", "王曉婷", "王定家/云生", "刘丹", "杨明峰", "艾琳", "蘇燕萍", "吳高翔", "王筱璐Vivian", "Jay", "杜珍", "張中生", "李少芳", "王水木", "玉荣", "杨琳", "吴 Serena", "王依瑤", "裴云", "徐秀琴", "瞿曉紅", "Jennifer", "苏薇薇", "李春浩", "彭丽", "陳玫虹"],
+            "恩惠": ["徐崇雷", "南榮芳", "孔庆颖", "王兆祥", "金梅", "付丹丹", "宋立山", "郭向东", "劉瑤", "熊涛Vivian", "吕敏", "Tina Xie", "尹曉榮", "何健", "戴方", "李群", "Lilian", "周賽萍", "劉小美", "㑎蕊", "梁雪玲", "連先生", "辛小龙", "李桂兰", "梁永芳", "朱樹瑾", "司雙見", "Chris", "王妈妈", "江 黎", "黎敏", "Shirley Lee", "张英俊Jean", "凌賴羅綺", "顾炳祝", "刘锦芸"],
+            "香柏樹": ["布秀英", "郭菊英", "銭金娣", "曹鳳娥", "葛子萍", "曹佩珍", "萬愛姺", "王秀兰", "戴淑夏", "陆美英"],
+            "青橄欖": ["张哲千", "孟繁浩", "馮黎予", "游家珮", "史夢亭", "章文司", "原超", "李圆汐", "杜亨荣", "趙卿", "陳文峰", "Eric", "Laura", "张思妍", "沈辰辰", "Derek", "Grace", "Sean", "Precilia", "余芷敏", "吴浩然", "唐哲森", "孙意", "吕昊华", "Kei", "李梓瑶", "Gelvin", "李鎬然", "吴卓一", "顾达维David", "顾利亚"],
+            "牧者": ["趙牧師", "趙師母", "陳樹民長老", "惠玲師母", "闫岩传道", "李佩珊", "凌志鹏牧師", "鄭隆保牧師", "黃錦聯", "黃貴珍", "趙子又牧師", "劉富理牧師", "黄明鎮牧师", "莊泽豊牧师", "蔡正驊牧師", "李前明牧师", "周景升牧师师母", "劉少平牧師师母", "蕭宏鵬牧師師母", "蔡耀明", "廖愛華", "邱茂松牧師", "何崇禧牧師師母", "王良忠牧師師母", "刘俊安牧师师母", "吕敏", "郭东绪牧师师母", "叶俊明牧师", "邵晨光牧师", "Matt Doan", "Eric", "盧恆牧师", "刘孝勇院长"]
+        };
+
+        // Data storage
+        let attendanceData = {
+            friday: {},
+            sunday: {}
+        };
+
+        // Initialize the app
+        function init() {
+            updateDateDisplays();
+            populateGroupSelectors();
+            loadData();
+            updateStats('friday');
+            updateStats('sunday');
+        }
+
+        // Update date displays
+        function updateDateDisplays() {
+            const now = new Date();
+            
+            // Find next Friday
+            const nextFriday = new Date();
+            nextFriday.setDate(now.getDate() + (5 - now.getDay() + 7) % 7);
+            if (now.getDay() === 5) nextFriday.setDate(now.getDate());
+            
+            // Find next Sunday
+            const nextSunday = new Date();
+            nextSunday.setDate(now.getDate() + (7 - now.getDay()) % 7);
+            if (now.getDay() === 0) nextSunday.setDate(now.getDate());
+            
+            document.getElementById('friday-date').textContent = 
+                `周五聚会 - ${nextFriday.toLocaleDateString('zh-CN')}`;
+            document.getElementById('sunday-date').textContent = 
+                `周日聚会 - ${nextSunday.toLocaleDateString('zh-CN')}`;
+        }
+
+        // Populate group selector dropdowns
+        function populateGroupSelectors() {
+            const groupNames = Object.keys(churchMembers);
+            
+            ['friday', 'sunday'].forEach(service => {
+                const selector = document.getElementById(`${service}-group-select`);
+                selector.innerHTML = '<option value="">选择小组...</option>';
+                
+                groupNames.forEach(groupName => {
+                    const option = document.createElement('option');
+                    option.value = groupName;
+                    option.textContent = `${groupName} (${churchMembers[groupName].length}人)`;
+                    selector.appendChild(option);
+                });
+            });
+        }
+
+        // Load group members for selection
+        function loadGroupMembers(service) {
+            const groupSelect = document.getElementById(`${service}-group-select`);
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const selectedGroup = groupSelect.value;
+
+            if (!selectedGroup) {
+                membersGrid.style.display = 'none';
+                return;
+            }
+
+            const members = churchMembers[selectedGroup];
+            membersGrid.innerHTML = '';
+            membersGrid.style.display = 'grid';
+
+            members.forEach(member => {
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'member-checkbox';
+                
+                const memberId = `${service}-${selectedGroup}-${member}`.replace(/[^a-zA-Z0-9]/g, '');
+                
+                memberDiv.innerHTML = `
+                    <input type="checkbox" id="${memberId}" value="${member}">
+                    <label for="${memberId}">${member}</label>
+                `;
+                
+                membersGrid.appendChild(memberDiv);
+            });
+        }
+
+        // Switch between services
+        function switchService(service) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update service sections
+            document.querySelectorAll('.service-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`${service}-service`).classList.add('active');
+        }
+
+        // Mark selected members as present
+        function markSelectedPresent(service) {
+            const groupSelect = document.getElementById(`${service}-group-select`);
+            const selectedGroup = groupSelect.value;
+            
+            if (!selectedGroup) {
+                alert('请先选择一个小组');
+                return;
+            }
+
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const checkboxes = membersGrid.querySelectorAll('input[type="checkbox"]:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('请至少选择一名成员');
+                return;
+            }
+
+            // Initialize group if it doesn't exist
+            if (!attendanceData[service][selectedGroup]) {
+                attendanceData[service][selectedGroup] = [];
+            }
+
+            let addedCount = 0;
+            checkboxes.forEach(checkbox => {
+                const memberName = checkbox.value;
+                if (!attendanceData[service][selectedGroup].includes(memberName)) {
+                    attendanceData[service][selectedGroup].push(memberName);
+                    addedCount++;
+                }
+                checkbox.checked = false;
+            });
+
+            if (addedCount > 0) {
+                renderGroups(service);
+                updateStats(service);
+                saveData();
+                alert(`成功添加 ${addedCount} 名成员到出席名单`);
+            } else {
+                alert('选中的成员已在出席名单中');
+            }
+        }
+
+        // Select all members in current group
+        function selectAllGroup(service) {
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const checkboxes = membersGrid.querySelectorAll('input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        // Clear all selections
+        function clearSelection(service) {
+            const membersGrid = document.getElementById(`${service}-members-grid`);
+            const checkboxes = membersGrid.querySelectorAll('input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        // Add custom member (visitor)
+        function addCustomMember(service) {
+            const input = document.getElementById(`${service}-custom-member`);
+            const memberName = input.value.trim();
+            
+            if (!memberName) {
+                alert('请输入访客姓名');
+                return;
+            }
+
+            const visitorGroup = '访客';
+            
+            // Initialize visitor group if it doesn't exist
+            if (!attendanceData[service][visitorGroup]) {
+                attendanceData[service][visitorGroup] = [];
+            }
+
+            // Check if member already exists
+            if (attendanceData[service][visitorGroup].includes(memberName)) {
+                alert('该访客已在出席名单中');
+                return;
+            }
