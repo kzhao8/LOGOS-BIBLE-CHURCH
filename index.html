@@ -511,9 +511,9 @@
 
         // EmailJS configuration
         const EMAIL_CONFIG = {
-            serviceId: 'gmail', // You'll need to set this up in EmailJS
-            templateId: 'attendance_report', // You'll need to create this template
-            publicKey: 'YOUR_EMAILJS_PUBLIC_KEY', // You'll need to get this from EmailJS
+            serviceId: 'service_5m5lyfs', // Your EmailJS Service ID
+            templateId: 'template_nz6rhqq', // Your EmailJS Template ID
+            publicKey: '-g4LYh8HZH3_tnI2O', // Your EmailJS Public Key
             targetEmail: 'kzhao8@gmail.com'
         };
 
@@ -526,9 +526,12 @@
             updateStats('friday');
             updateStats('sunday');
             
-            // Initialize EmailJS if available
-            if (window.emailjs && EMAIL_CONFIG.publicKey !== 'YOUR_EMAILJS_PUBLIC_KEY') {
+            // Initialize EmailJS
+            if (window.emailjs) {
                 emailjs.init(EMAIL_CONFIG.publicKey);
+                console.log('EmailJS initialized successfully');
+            } else {
+                console.warn('EmailJS not loaded');
             }
         }
 
@@ -788,13 +791,6 @@
 
         // Email attendance report
         function emailAttendanceReport() {
-            // Check if EmailJS is configured
-            if (!window.emailjs) {
-                alert('邮件服务未配置。请联系管理员设置EmailJS服务。');
-                showEmailSetupInstructions();
-                return;
-            }
-
             const now = new Date();
             const reportData = generateAttendanceReport();
             
@@ -827,7 +823,8 @@
                 })
                 .catch(function(error) {
                     console.error('Email send failed:', error);
-                    alert('❌ 发送失败。请稍后重试或联系管理员。\n\n作为备选方案，您可以复制以下报告内容：\n\n' + emailContent.message);
+                    alert('❌ 发送失败：' + (error.text || error.message || '未知错误') + 
+                          '\n\n请检查网络连接或联系管理员。\n\n作为备选方案，您可以复制以下报告内容：\n\n' + emailContent.message);
                 })
                 .finally(function() {
                     sendButton.textContent = originalText;
@@ -898,29 +895,32 @@
         // Show email setup instructions
         function showEmailSetupInstructions() {
             const instructions = `
-📧 邮件功能设置说明：
+📧 邮件功能配置状态：
 
-要启用自动发送邮件功能，请按以下步骤设置：
+✅ 已完成所有配置：
+- Service ID: service_5m5lyfs
+- Template ID: template_nz6rhqq  
+- Public Key: -g4LYh8HZH3_tnI2O
+- 目标邮箱: kzhao8@gmail.com
 
-1. 访问 https://www.emailjs.com/ 注册账户
-2. 创建邮件服务 (推荐使用Gmail)
-3. 创建邮件模板，包含以下变量：
-   - {{from_name}}
-   - {{to_email}}
-   - {{subject}}
-   - {{message}}
-   - {{report_date}}
-   - {{friday_total}}
-   - {{sunday_total}}
+🎉 邮件功能已就绪！
 
-4. 获取以下信息并更新代码：
-   - Service ID
-   - Template ID  
-   - Public Key
+您现在可以：
+1. 添加出席数据
+2. 点击"发送点名报告"按钮
+3. 报告将自动发送到 kzhao8@gmail.com
 
-5. 联系技术人员更新配置信息
+📧 邮件模板变量说明：
+确保您的 EmailJS 模板 (template_nz6rhqq) 包含：
+- {{message}} - 完整的报告内容
+- {{subject}} - 邮件标题
+- {{from_name}} - 发送人名称
+- {{to_email}} - 收件人邮箱
 
-当前目标邮箱: ${EMAIL_CONFIG.targetEmail}
+如果发送失败，请检查：
+1. 网络连接
+2. EmailJS 服务状态
+3. 模板配置是否正确
             `;
             
             alert(instructions);
