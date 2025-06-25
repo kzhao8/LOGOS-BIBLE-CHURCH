@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>圣经直道教会 - 出席统计</title>
+    <!-- EmailJS SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/emailjs/3.2.0/email.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -131,6 +133,7 @@
         .btn-primary {
             background: #3498db;
             color: white;
+            margin: 0 10px;
         }
 
         .btn-primary:hover {
@@ -458,6 +461,7 @@
 
             <div style="text-align: center; margin-top: 30px;">
                 <button class="btn btn-success" onclick="exportData()">📊 导出出席数据</button>
+                <button class="btn btn-primary" onclick="emailAttendanceReport()">📧 发送点名报告</button>
             </div>
         </div>
     </div>
@@ -505,6 +509,14 @@
             sunday: {}
         };
 
+        // EmailJS configuration
+        const EMAIL_CONFIG = {
+            serviceId: 'gmail', // You'll need to set this up in EmailJS
+            templateId: 'attendance_report', // You'll need to create this template
+            publicKey: 'YOUR_EMAILJS_PUBLIC_KEY', // You'll need to get this from EmailJS
+            targetEmail: 'kzhao8@gmail.com'
+        };
+
         // Initialize the app
         function init() {
             updateDateDisplays();
@@ -513,6 +525,11 @@
             loadData();
             updateStats('friday');
             updateStats('sunday');
+            
+            // Initialize EmailJS if available
+            if (window.emailjs && EMAIL_CONFIG.publicKey !== 'YOUR_EMAILJS_PUBLIC_KEY') {
+                emailjs.init(EMAIL_CONFIG.publicKey);
+            }
         }
 
         // Update date displays
@@ -769,7 +786,145 @@
             localStorage.setItem('churchMembersDatabase', data);
         }
 
-        // Load member database from localStorage
+        // Email attendance report
+        function emailAttendanceReport() {
+            // Check if EmailJS is configured
+            if (!window.emailjs) {
+                alert('邮件服务未配置。请联系管理员设置EmailJS服务。');
+                showEmailSetupInstructions();
+                return;
+            }
+
+            const now = new Date();
+            const reportData = generateAttendanceReport();
+            
+            // Prepare email content
+            const emailContent = {
+                to_email: EMAIL_CONFIG.targetEmail,
+                from_name: '圣经直道教会出席系统',
+                subject: `教会出席报告 - ${now.toLocaleDateString('zh-CN')}`,
+                message: formatEmailMessage(reportData),
+                report_date: now.toLocaleDateString('zh-CN'),
+                friday_total: reportData.friday.totalMembers,
+                friday_groups: reportData.friday.totalGroups,
+                sunday_total: reportData.sunday.totalMembers,
+                sunday_groups: reportData.sunday.totalGroups,
+                friday_attendance: formatAttendanceForEmail(reportData.friday.groups),
+                sunday_attendance: formatAttendanceForEmail(reportData.sunday.groups)
+            };
+
+            // Show loading state
+            const sendButton = event.target;
+            const originalText = sendButton.textContent;
+            sendButton.textContent = '发送中...';
+            sendButton.disabled = true;
+
+            // Send email using EmailJS
+            emailjs.send(EMAIL_CONFIG.serviceId, EMAIL_CONFIG.templateId, emailContent, EMAIL_CONFIG.publicKey)
+                .then(function(response) {
+                    alert('✅ 点名报告已成功发送到 ' + EMAIL_CONFIG.targetEmail);
+                    console.log('Email sent successfully:', response);
+                })
+                .catch(function(error) {
+                    console.error('Email send failed:', error);
+                    alert('❌ 发送失败。请稍后重试或联系管理员。\n\n作为备选方案，您可以复制以下报告内容：\n\n' + emailContent.message);
+                })
+                .finally(function() {
+                    sendButton.textContent = originalText;
+                    sendButton.disabled = false;
+                });
+        }
+
+        // Generate attendance report data
+        function generateAttendanceReport() {
+            return {
+                exportDate: new Date().toISOString(),
+                church: '圣经直道教会',
+                friday: {
+                    totalMembers: Object.values(attendanceData.friday).reduce((sum, members) => sum + members.length, 0),
+                    totalGroups: Object.keys(attendanceData.friday).length,
+                    groups: Object.keys(attendanceData.friday).map(groupName => ({
+                        name: groupName,
+                        count: attendanceData.friday[groupName].length,
+                        members: attendanceData.friday[groupName]
+                    }))
+                },
+                sunday: {
+                    totalMembers: Object.values(attendanceData.sunday).reduce((sum, members) => sum + members.length, 0),
+                    totalGroups: Object.keys(attendanceData.sunday).length,
+                    groups: Object.keys(attendanceData.sunday).map(groupName => ({
+                        name: groupName,
+                        count: attendanceData.sunday[groupName].length,
+                        members: attendanceData.sunday[groupName]
+                    }))
+                }
+            };
+        }
+
+        // Format attendance data for email
+        function formatAttendanceForEmail(groups) {
+            if (groups.length === 0) return '无出席记录';
+            
+            return groups.map(group => 
+                `${group.name} (${group.count}人): ${group.members.join(', ')}`
+            ).join('\n');
+        }
+
+        // Format complete email message
+        function formatEmailMessage(reportData) {
+            const now = new Date();
+            let message = `圣经直道教会出席报告\n`;
+            message += `报告日期: ${now.toLocaleDateString('zh-CN')} ${now.toLocaleTimeString('zh-CN')}\n\n`;
+            
+            message += `📊 总体统计:\n`;
+            message += `周五聚会: ${reportData.friday.totalMembers}人出席 (${reportData.friday.totalGroups}个小组)\n`;
+            message += `周日聚会: ${reportData.sunday.totalMembers}人出席 (${reportData.sunday.totalGroups}个小组)\n\n`;
+            
+            if (reportData.friday.totalMembers > 0) {
+                message += `🙏 周五聚会详情:\n`;
+                message += formatAttendanceForEmail(reportData.friday.groups) + '\n\n';
+            }
+            
+            if (reportData.sunday.totalMembers > 0) {
+                message += `⛪ 周日聚会详情:\n`;
+                message += formatAttendanceForEmail(reportData.sunday.groups) + '\n\n';
+            }
+            
+            message += `---\n此报告由圣经直道教会出席统计系统自动生成`;
+            
+            return message;
+        }
+
+        // Show email setup instructions
+        function showEmailSetupInstructions() {
+            const instructions = `
+📧 邮件功能设置说明：
+
+要启用自动发送邮件功能，请按以下步骤设置：
+
+1. 访问 https://www.emailjs.com/ 注册账户
+2. 创建邮件服务 (推荐使用Gmail)
+3. 创建邮件模板，包含以下变量：
+   - {{from_name}}
+   - {{to_email}}
+   - {{subject}}
+   - {{message}}
+   - {{report_date}}
+   - {{friday_total}}
+   - {{sunday_total}}
+
+4. 获取以下信息并更新代码：
+   - Service ID
+   - Template ID  
+   - Public Key
+
+5. 联系技术人员更新配置信息
+
+当前目标邮箱: ${EMAIL_CONFIG.targetEmail}
+            `;
+            
+            alert(instructions);
+        }
         function loadMemberDatabase() {
             const savedData = localStorage.getItem('churchMembersDatabase');
             if (savedData) {
