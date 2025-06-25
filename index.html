@@ -655,3 +655,154 @@
                 alert('该访客已在出席名单中');
                 return;
             }
+
+            // Add visitor
+            attendanceData[service][visitorGroup].push(memberName);
+            
+            // Clear input
+            input.value = '';
+            
+            // Update display
+            renderGroups(service);
+            updateStats(service);
+            saveData();
+            
+            alert(`访客 ${memberName} 已添加到出席名单`);
+        }
+
+        // Remove member from attendance
+        function removeMember(service, groupName, memberName) {
+            const group = attendanceData[service][groupName];
+            const index = group.indexOf(memberName);
+            
+            if (index > -1) {
+                group.splice(index, 1);
+                
+                // Remove group if empty
+                if (group.length === 0) {
+                    delete attendanceData[service][groupName];
+                }
+                
+                renderGroups(service);
+                updateStats(service);
+                saveData();
+            }
+        }
+
+        // Render groups for a service
+        function renderGroups(service) {
+            const container = document.getElementById(`${service}-groups`);
+            container.innerHTML = '';
+
+            const groups = attendanceData[service];
+            
+            Object.keys(groups).forEach(groupName => {
+                const members = groups[groupName];
+                
+                const groupCard = document.createElement('div');
+                groupCard.className = 'group-card';
+                
+                groupCard.innerHTML = `
+                    <div class="group-header">
+                        <div class="group-name">${groupName}</div>
+                        <div class="group-count">${members.length}</div>
+                    </div>
+                    <div class="members-list">
+                        ${members.map(member => `
+                            <div class="member-item">
+                                <span class="member-name">${member}</span>
+                                <button class="btn btn-danger" onclick="removeMember('${service}', '${groupName}', '${member}')">移除</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(groupCard);
+            });
+        }
+
+        // Update statistics
+        function updateStats(service) {
+            const groups = attendanceData[service];
+            const totalMembers = Object.values(groups).reduce((sum, members) => sum + members.length, 0);
+            const totalGroups = Object.keys(groups).length;
+
+            document.getElementById(`${service}-total-count`).textContent = totalMembers;
+            document.getElementById(`${service}-groups-count`).textContent = totalGroups;
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            const data = JSON.stringify(attendanceData);
+            localStorage.setItem('churchAttendanceData', data);
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const savedData = localStorage.getItem('churchAttendanceData');
+            if (savedData) {
+                attendanceData = JSON.parse(savedData);
+                renderGroups('friday');
+                renderGroups('sunday');
+            }
+        }
+
+        // Export attendance data
+        function exportData() {
+            const now = new Date();
+            const exportData = {
+                exportDate: now.toISOString(),
+                exportDateChinese: now.toLocaleDateString('zh-CN'),
+                church: '圣经直道教会',
+                fridayAttendance: attendanceData.friday,
+                sundayAttendance: attendanceData.sunday,
+                summary: {
+                    friday: {
+                        totalMembers: Object.values(attendanceData.friday).reduce((sum, members) => sum + members.length, 0),
+                        totalGroups: Object.keys(attendanceData.friday).length,
+                        groups: Object.keys(attendanceData.friday).map(groupName => ({
+                            name: groupName,
+                            count: attendanceData.friday[groupName].length,
+                            members: attendanceData.friday[groupName]
+                        }))
+                    },
+                    sunday: {
+                        totalMembers: Object.values(attendanceData.sunday).reduce((sum, members) => sum + members.length, 0),
+                        totalGroups: Object.keys(attendanceData.sunday).length,
+                        groups: Object.keys(attendanceData.sunday).map(groupName => ({
+                            name: groupName,
+                            count: attendanceData.sunday[groupName].length,
+                            members: attendanceData.sunday[groupName]
+                        }))
+                    }
+                },
+                totalChurchMembers: Object.values(churchMembers).reduce((sum, members) => sum + members.length, 0),
+                totalSmallGroups: Object.keys(churchMembers).length
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `圣经直道教会出席统计-${now.toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // Initialize the app when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Allow Enter key to add custom members
+            ['friday', 'sunday'].forEach(service => {
+                const customInput = document.getElementById(`${service}-custom-member`);
+                customInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addCustomMember(service);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
