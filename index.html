@@ -391,10 +391,10 @@
                             </select>
                         </div>
                         <div class="input-group">
-                            <label for="friday-custom-member">或添加访客</label>
-                            <input type="text" id="friday-custom-member" placeholder="输入访客姓名">
+                            <label for="friday-custom-member">或添加新人</label>
+                            <input type="text" id="friday-custom-member" placeholder="输入新人姓名">
                         </div>
-                        <button class="btn btn-secondary" onclick="addCustomMember('friday')">添加访客</button>
+                        <button class="btn btn-secondary" onclick="addCustomMember('friday')">添加新人</button>
                         <button class="btn btn-primary" onclick="clearSelection('friday')">清空选择</button>
                     </div>
                     
@@ -403,6 +403,7 @@
                     <div class="bulk-actions">
                         <button class="btn btn-success" onclick="markSelectedPresent('friday')">标记选中为出席</button>
                         <button class="btn btn-secondary" onclick="selectAllGroup('friday')">全选当前小组</button>
+                        <button class="btn btn-primary" onclick="showAddNewMemberModal('friday')">添加新成员到小组</button>
                     </div>
                 </div>
 
@@ -436,10 +437,10 @@
                             </select>
                         </div>
                         <div class="input-group">
-                            <label for="sunday-custom-member">或添加访客</label>
-                            <input type="text" id="sunday-custom-member" placeholder="输入访客姓名">
+                            <label for="sunday-custom-member">或添加新人</label>
+                            <input type="text" id="sunday-custom-member" placeholder="输入新人姓名">
                         </div>
-                        <button class="btn btn-secondary" onclick="addCustomMember('sunday')">添加访客</button>
+                        <button class="btn btn-secondary" onclick="addCustomMember('sunday')">添加新人</button>
                         <button class="btn btn-primary" onclick="clearSelection('sunday')">清空选择</button>
                     </div>
                     
@@ -448,6 +449,7 @@
                     <div class="bulk-actions">
                         <button class="btn btn-success" onclick="markSelectedPresent('sunday')">标记选中为出席</button>
                         <button class="btn btn-secondary" onclick="selectAllGroup('sunday')">全选当前小组</button>
+                        <button class="btn btn-primary" onclick="showAddNewMemberModal('sunday')">添加新成员到小组</button>
                     </div>
                 </div>
 
@@ -456,6 +458,30 @@
 
             <div style="text-align: center; margin-top: 30px;">
                 <button class="btn btn-success" onclick="exportData()">📊 导出出席数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Member Modal -->
+    <div id="newMemberModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+            <h3 style="margin-bottom: 20px; color: #2c3e50;">添加新成员到小组</h3>
+            
+            <div class="input-group" style="margin-bottom: 15px;">
+                <label for="newMemberName">成员姓名</label>
+                <input type="text" id="newMemberName" placeholder="输入新成员姓名" style="width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 8px;">
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label for="newMemberGroup">选择小组</label>
+                <select id="newMemberGroup" style="width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 8px;">
+                    <option value="">选择小组...</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeAddNewMemberModal()">取消</button>
+                <button class="btn btn-primary" onclick="addNewMemberToGroup()">添加成员</button>
             </div>
         </div>
     </div>
@@ -482,6 +508,7 @@
         // Initialize the app
         function init() {
             updateDateDisplays();
+            loadMemberDatabase(); // Load any new members added previously
             populateGroupSelectors();
             loadData();
             updateStats('friday');
@@ -633,31 +660,31 @@
             });
         }
 
-        // Add custom member (visitor)
+        // Add custom member (new person)
         function addCustomMember(service) {
             const input = document.getElementById(`${service}-custom-member`);
             const memberName = input.value.trim();
             
             if (!memberName) {
-                alert('请输入访客姓名');
+                alert('请输入新人姓名');
                 return;
             }
 
-            const visitorGroup = '访客';
+            const newPersonGroup = '新人';
             
-            // Initialize visitor group if it doesn't exist
-            if (!attendanceData[service][visitorGroup]) {
-                attendanceData[service][visitorGroup] = [];
+            // Initialize new person group if it doesn't exist
+            if (!attendanceData[service][newPersonGroup]) {
+                attendanceData[service][newPersonGroup] = [];
             }
 
             // Check if member already exists
-            if (attendanceData[service][visitorGroup].includes(memberName)) {
-                alert('该访客已在出席名单中');
+            if (attendanceData[service][newPersonGroup].includes(memberName)) {
+                alert('该新人已在出席名单中');
                 return;
             }
 
-            // Add visitor
-            attendanceData[service][visitorGroup].push(memberName);
+            // Add new person
+            attendanceData[service][newPersonGroup].push(memberName);
             
             // Clear input
             input.value = '';
@@ -667,10 +694,99 @@
             updateStats(service);
             saveData();
             
-            alert(`访客 ${memberName} 已添加到出席名单`);
+            alert(`新人 ${memberName} 已添加到出席名单`);
         }
 
-        // Remove member from attendance
+        // Show add new member modal
+        function showAddNewMemberModal(service) {
+            const modal = document.getElementById('newMemberModal');
+            const groupSelect = document.getElementById('newMemberGroup');
+            
+            // Clear previous values
+            document.getElementById('newMemberName').value = '';
+            groupSelect.innerHTML = '<option value="">选择小组...</option>';
+            
+            // Populate group options
+            Object.keys(churchMembers).forEach(groupName => {
+                const option = document.createElement('option');
+                option.value = groupName;
+                option.textContent = `${groupName} (${churchMembers[groupName].length}人)`;
+                groupSelect.appendChild(option);
+            });
+            
+            // Store current service for later use
+            modal.dataset.service = service;
+            modal.style.display = 'flex';
+        }
+
+        // Close add new member modal
+        function closeAddNewMemberModal() {
+            document.getElementById('newMemberModal').style.display = 'none';
+        }
+
+        // Add new member to church group
+        function addNewMemberToGroup() {
+            const modal = document.getElementById('newMemberModal');
+            const memberName = document.getElementById('newMemberName').value.trim();
+            const groupName = document.getElementById('newMemberGroup').value;
+            
+            if (!memberName || !groupName) {
+                alert('请输入成员姓名并选择小组');
+                return;
+            }
+
+            // Check if member already exists in the group
+            if (churchMembers[groupName].includes(memberName)) {
+                alert('该成员已存在于此小组中');
+                return;
+            }
+
+            // Add member to church database
+            churchMembers[groupName].push(memberName);
+            
+            // Refresh group selectors
+            populateGroupSelectors();
+            
+            // If current group is selected, refresh member grid
+            const service = modal.dataset.service;
+            const currentGroupSelect = document.getElementById(`${service}-group-select`);
+            if (currentGroupSelect.value === groupName) {
+                loadGroupMembers(service);
+            }
+            
+            // Close modal
+            closeAddNewMemberModal();
+            
+            // Save updated member database
+            saveMemberDatabase();
+            
+            alert(`成员 ${memberName} 已成功添加到 ${groupName} 小组`);
+        }
+
+        // Save member database to localStorage
+        function saveMemberDatabase() {
+            const data = JSON.stringify(churchMembers);
+            localStorage.setItem('churchMembersDatabase', data);
+        }
+
+        // Load member database from localStorage
+        function loadMemberDatabase() {
+            const savedData = localStorage.getItem('churchMembersDatabase');
+            if (savedData) {
+                const loadedMembers = JSON.parse(savedData);
+                // Merge with original data, preserving new additions
+                Object.keys(loadedMembers).forEach(groupName => {
+                    if (churchMembers[groupName]) {
+                        // Add any new members that aren't in the original list
+                        loadedMembers[groupName].forEach(member => {
+                            if (!churchMembers[groupName].includes(member)) {
+                                churchMembers[groupName].push(member);
+                            }
+                        });
+                    }
+                });
+            }
+        }
         function removeMember(service, groupName, memberName) {
             const group = attendanceData[service][groupName];
             const index = group.indexOf(memberName);
@@ -801,6 +917,20 @@
                         addCustomMember(service);
                     }
                 });
+            });
+
+            // Allow Enter key in new member modal
+            document.getElementById('newMemberName').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addNewMemberToGroup();
+                }
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('newMemberModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeAddNewMemberModal();
+                }
             });
         });
     </script>
